@@ -67,8 +67,10 @@ export interface Config {
   };
   blocks: {};
   collections: {
-    users: User;
+    products: Product;
+    categories: Category;
     media: Media;
+    users: User;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -76,8 +78,10 @@ export interface Config {
   };
   collectionsJoins: {};
   collectionsSelect: {
-    users: UsersSelect<false> | UsersSelect<true>;
+    products: ProductsSelect<false> | ProductsSelect<true>;
+    categories: CategoriesSelect<false> | CategoriesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -118,6 +122,160 @@ export interface UserAuthOperations {
   };
 }
 /**
+ * Название, цены, варианты и остатки приходят из МойСклада. Здесь — фото, подача и публикация.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products".
+ */
+export interface Product {
+  id: number;
+  published?: boolean | null;
+  /**
+   * Задаётся один раз, чтобы ссылки не менялись.
+   */
+  slug: string;
+  /**
+   * Снят — товар удалён в МойСкладе и скрыт с сайта.
+   */
+  inSource?: boolean | null;
+  syncedAt?: string | null;
+  /**
+   * Первое фото — в каталоге и первым в галерее. Соотношение 4:5.
+   */
+  images?: (number | Media)[] | null;
+  /**
+   * Посадка и одна ясная деталь. Без «уникальный», «идеальный».
+   */
+  description?: string | null;
+  modelNote?: string | null;
+  /**
+   * Идут под основной частью страницы, в заданном порядке.
+   */
+  blocks?:
+    | (
+        | {
+            image: number | Media;
+            caption?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'fullImage';
+          }
+        | {
+            left: number | Media;
+            right: number | Media;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'imagePair';
+          }
+        | {
+            /**
+             * Коротко, не больше двух строк.
+             */
+            text: string;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'quote';
+          }
+        | {
+            heading?: string | null;
+            /**
+             * Абзацы разделяйте пустой строкой.
+             */
+            body: string;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'text';
+          }
+        | {
+            image: number | Media;
+            caption?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'measurementsImage';
+          }
+        | {
+            video: number | Media;
+            /**
+             * Показывается, пока видео не запущено, и при «уменьшении движения».
+             */
+            poster: number | Media;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'video';
+          }
+        | {
+            heading?: string | null;
+            products: (number | Product)[];
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'styleWith';
+          }
+      )[]
+    | null;
+  title: string;
+  article?: string | null;
+  category?: (number | null) | Category;
+  price: number;
+  oldPrice?: number | null;
+  inStock?: boolean | null;
+  composition?: string | null;
+  care?: string | null;
+  measurements?: string | null;
+  sourceUpdatedAt?: string | null;
+  externalId: string;
+  variants?:
+    | {
+        externalId: string;
+        color?: string | null;
+        size: string;
+        price: number;
+        available: number;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: number;
+  /**
+   * Что на фото: вещь и посадка, без оценок («стильный образ» — нельзя).
+   */
+  alt: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * Создаются автоматически при синхронизации по папкам МойСклада.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories".
+ */
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  /**
+   * Меньше — левее во вкладках каталога.
+   */
+  order?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
@@ -145,25 +303,6 @@ export interface User {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: number;
-  alt: string;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -187,12 +326,20 @@ export interface PayloadLockedDocument {
   id: number;
   document?:
     | ({
-        relationTo: 'users';
-        value: number | User;
+        relationTo: 'products';
+        value: number | Product;
+      } | null)
+    | ({
+        relationTo: 'categories';
+        value: number | Category;
       } | null)
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'users';
+        value: number | User;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -238,6 +385,130 @@ export interface PayloadMigration {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "products_select".
+ */
+export interface ProductsSelect<T extends boolean = true> {
+  published?: T;
+  slug?: T;
+  inSource?: T;
+  syncedAt?: T;
+  images?: T;
+  description?: T;
+  modelNote?: T;
+  blocks?:
+    | T
+    | {
+        fullImage?:
+          | T
+          | {
+              image?: T;
+              caption?: T;
+              id?: T;
+              blockName?: T;
+            };
+        imagePair?:
+          | T
+          | {
+              left?: T;
+              right?: T;
+              id?: T;
+              blockName?: T;
+            };
+        quote?:
+          | T
+          | {
+              text?: T;
+              id?: T;
+              blockName?: T;
+            };
+        text?:
+          | T
+          | {
+              heading?: T;
+              body?: T;
+              id?: T;
+              blockName?: T;
+            };
+        measurementsImage?:
+          | T
+          | {
+              image?: T;
+              caption?: T;
+              id?: T;
+              blockName?: T;
+            };
+        video?:
+          | T
+          | {
+              video?: T;
+              poster?: T;
+              id?: T;
+              blockName?: T;
+            };
+        styleWith?:
+          | T
+          | {
+              heading?: T;
+              products?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  title?: T;
+  article?: T;
+  category?: T;
+  price?: T;
+  oldPrice?: T;
+  inStock?: T;
+  composition?: T;
+  care?: T;
+  measurements?: T;
+  sourceUpdatedAt?: T;
+  externalId?: T;
+  variants?:
+    | T
+    | {
+        externalId?: T;
+        color?: T;
+        size?: T;
+        price?: T;
+        available?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories_select".
+ */
+export interface CategoriesSelect<T extends boolean = true> {
+  name?: T;
+  slug?: T;
+  order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media_select".
+ */
+export interface MediaSelect<T extends boolean = true> {
+  alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users_select".
  */
 export interface UsersSelect<T extends boolean = true> {
@@ -258,24 +529,6 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media_select".
- */
-export interface MediaSelect<T extends boolean = true> {
-  alt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-  url?: T;
-  thumbnailURL?: T;
-  filename?: T;
-  mimeType?: T;
-  filesize?: T;
-  width?: T;
-  height?: T;
-  focalX?: T;
-  focalY?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

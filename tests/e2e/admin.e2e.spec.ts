@@ -2,6 +2,7 @@ import { test, expect, Page } from '@playwright/test'
 import { login } from '../helpers/login'
 import { seedTestUser, cleanupTestUser, testUser } from '../helpers/seedUser'
 
+// The admin UI is in Russian (payload.config.ts → i18n), so assertions use Russian labels.
 test.describe('Admin Panel', () => {
   let page: Page
 
@@ -19,23 +20,19 @@ test.describe('Admin Panel', () => {
   })
 
   test('can navigate to dashboard', async () => {
-    await page.goto('http://localhost:3000/admin')
-    await expect(page).toHaveURL('http://localhost:3000/admin')
-    const dashboardArtifact = page.locator('span[title="Dashboard"]').first()
-    await expect(dashboardArtifact).toBeVisible()
+    await page.goto('/admin')
+    await expect(page).toHaveURL(/\/admin$/)
+    await expect(page.getByRole('link', { name: 'Товары' }).first()).toBeVisible()
   })
 
-  test('can navigate to list view', async () => {
-    await page.goto('http://localhost:3000/admin/collections/users')
-    await expect(page).toHaveURL('http://localhost:3000/admin/collections/users')
-    const listViewArtifact = page.locator('h1', { hasText: 'Users' }).first()
-    await expect(listViewArtifact).toBeVisible()
+  test('products list shows the sync button', async () => {
+    await page.goto('/admin/collections/products')
+    await expect(page.getByRole('button', { name: 'Синхронизировать с МойСкладом' })).toBeVisible()
   })
 
   test('can navigate to edit view', async () => {
-    await page.goto('http://localhost:3000/admin/collections/users/create')
+    await page.goto('/admin/collections/users/create')
     await expect(page).toHaveURL(/\/admin\/collections\/users\/[a-zA-Z0-9-_]+/)
-    const editViewArtifact = page.locator('input[name="email"]')
-    await expect(editViewArtifact).toBeVisible()
+    await expect(page.locator('input[name="email"]')).toBeVisible()
   })
 })

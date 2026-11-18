@@ -26,6 +26,6 @@ export async function login({
 
   await page.waitForURL(`${serverURL}/admin`)
 
-  const dashboardArtifact = page.locator('span[title="Dashboard"]')
-  await expect(dashboardArtifact).toBeVisible()
+  // Admin UI is in Russian: the products link in the nav proves we're on the dashboard.
+  await expect(page.getByRole('link', { name: 'Товары' }).first()).toBeVisible()
 }
