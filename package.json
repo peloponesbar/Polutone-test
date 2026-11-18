@@ -20,8 +20,9 @@
     "seed:mock": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/publish-mock.ts",
     "seed:photos": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/import-photos.ts",
     "seed:info": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/seed-info.ts",
-    "vercel-build": "cross-env NODE_OPTIONS=--no-deprecation payload migrate && npm run build",
-    "migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate"
+    "vercel-build": "npm run migrate && npm run seed:build && npm run build",
+    "migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate",
+    "seed:build": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/seed-build.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.94.0",

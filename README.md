@@ -35,7 +35,7 @@ Next.js 16 + Payload CMS 3 + PostgreSQL + Tailwind 4. Фото — Timeweb S3.
 
 ## Тестовый сайт на Vercel
 
-Vercel собирает сайт из GitHub после каждого коммита (скрипт `vercel-build`: сначала `payload migrate`, потом `next build`).
+Vercel собирает сайт из GitHub после каждого коммита (скрипт `vercel-build`: миграции базы → тестовые данные, если включены → `next build`).
 
 Переменные окружения в Vercel (Settings → Environment Variables):
 
@@ -45,7 +45,10 @@ Vercel собирает сайт из GitHub после каждого комм�
 | `PAYLOAD_SECRET` | Длинная случайная строка, своя для этого сайта |
 | `CATALOG_SOURCE` | `mock` |
 | `SITE_PASSWORD` | Пароль на весь сайт (имя пользователя любое); пусто — сайт открыт |
+| `SEED_TEST_DATA` | `true` — при сборке создать страницы «Информация» и тестовый каталог |
 
-Наполнение базы Neon тестовыми товарами и страницами «Информация» — с этого компьютера:
-положить строку Neon в `.env` как `NEON_DATABASE_URL`, затем выполнить с `DATABASE_URL`, равным ей:
-`npm run migrate`, `npm run seed:info`, `npm run seed:mock`. Фото (`seed:photos`) на тестовый сайт не загружаются.
+База: в Vercel → Storage → Create Database → Neon — переменная `DATABASE_URL` добавится сама.
+
+Тестовые данные создаются при сборке (`npm run seed:build`), если `SEED_TEST_DATA=true`: при первой сборке —
+страницы «Информация» и 6 тестовых изделий (опубликованы); повторные сборки ничего не дублируют и не меняют
+правки из админки. Фото на тестовый сайт не загружаются.
