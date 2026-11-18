@@ -2,25 +2,33 @@ import { expect, test } from '@playwright/test'
 
 import { seedPublishedCatalog } from '../helpers/catalog'
 
+const HOODIE = '/catalog/hudi-pulover-s-karmanom-kenguru'
+
 test.describe('Catalog → product', () => {
   test.beforeAll(async () => {
     await seedPublishedCatalog()
   })
 
+  test('home page shows the hero, categories and new items', async ({ page }) => {
+    await page.goto('/')
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Выразительность')
+    await expect(page.getByRole('heading', { name: 'Категории' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Коллекция 01' })).toBeVisible()
+    await page.getByRole('link', { name: 'Смотреть коллекцию' }).click()
+    await expect(page).toHaveURL(/\/catalog$/)
+  })
+
   test('filters by category and opens a product', async ({ page }) => {
     await page.goto('/catalog')
     await expect(page.getByRole('heading', { level: 1, name: 'Каталог' })).toBeVisible()
-    await expect(page.getByRole('status').first()).toHaveText('8 изделий')
+    await expect(page.getByRole('status').first()).toHaveText('6 изделий')
 
     await page.getByRole('navigation', { name: 'Категории' }).getByRole('link', { name: 'Брюки' }).click()
     await expect(page).toHaveURL(/category=bryuki/)
     await expect(page.getByRole('status').first()).toHaveText('2 изделия')
-    await expect(page.getByRole('link', { name: 'Брюки широкие' })).toBeVisible()
-    await expect(page.getByText('Нет в наличии')).toBeVisible()
 
-    await page.getByRole('link', { name: 'Брюки широкие' }).click()
-    await expect(page).toHaveURL(/\/catalog\/bryuki-shirokie$/)
-    await expect(page.getByRole('heading', { level: 1, name: 'Брюки широкие' })).toBeVisible()
+    await page.getByRole('link', { name: 'Прямые брюки с передним швом' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Прямые брюки с передним швом' })).toBeVisible()
   })
 
   test('sorting by price keeps the category', async ({ page }) => {
@@ -31,13 +39,14 @@ test.describe('Catalog → product', () => {
   })
 
   test('size selection follows availability of the chosen color', async ({ page }) => {
-    await page.goto('/catalog/zhaket-pryamoy')
+    await page.goto(HOODIE)
     const sizes = page.getByRole('radiogroup', { name: 'Размер' })
 
     await page.getByRole('button', { name: 'В корзину' }).click()
     await expect(page.getByText('Выберите, пожалуйста, размер.')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Камень' }).click()
+    // «Пыльная роза» has no XS in the test data.
+    await page.getByRole('button', { name: 'Пыльная роза' }).click()
     await expect(sizes.getByRole('radio', { name: 'XS, нет в наличии' })).toBeVisible()
 
     await sizes.getByRole('radio', { name: 'M', exact: true }).click()
@@ -49,7 +58,7 @@ test.describe('Catalog → product', () => {
   })
 
   test('size chart link opens the sizes section', async ({ page }) => {
-    await page.goto('/catalog/zhaket-pryamoy')
+    await page.goto(HOODIE)
     await page.getByRole('link', { name: 'Таблица размеров' }).click()
     await expect(page.locator('#razmery')).toHaveAttribute('open', '')
     await expect(page.getByRole('table')).toContainText('Ширина по груди, см')

@@ -125,10 +125,11 @@ describe('helpers', () => {
 })
 
 describe('mock assortment', () => {
-  it('maps cleanly: 8 products, unique ids, every product sellable', () => {
+  it('maps cleanly: 6 models × 5 colors × 5 sizes, unique ids, every product sellable', () => {
     const { products, skipped } = normalizeAssortment(mockAssortment())
     expect(skipped).toEqual([])
-    expect(products).toHaveLength(8)
+    expect(products.map((p) => p.article)).toEqual(['H01', 'H02', 'P01', 'P02', 'T01', 'T02'])
+    expect(products.every((p) => p.variants.length === 25)).toBe(true)
     const variantIds = products.flatMap((p) => p.variants.map((v) => v.externalId))
     expect(new Set(variantIds).size).toBe(variantIds.length)
     expect(products.every((p) => p.variants.length > 0 && p.price > 0)).toBe(true)

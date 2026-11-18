@@ -17,7 +17,8 @@
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
     "screenshot": "node scripts/screenshot.mjs",
     "sync": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/sync.ts",
-    "seed:mock": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/publish-mock.ts"
+    "seed:mock": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/publish-mock.ts",
+    "seed:photos": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/import-photos.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.94.0",

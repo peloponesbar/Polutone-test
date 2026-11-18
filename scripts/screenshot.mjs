@@ -29,6 +29,19 @@ try {
     await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }])
     await page.goto(url, { waitUntil: 'networkidle0', timeout: 60_000 })
     await page.evaluate(() => document.fonts.ready)
+    // Scroll through the page so lazy images load, then wait for them before capturing.
+    await page.evaluate(async () => {
+      for (let y = 0; y < document.body.scrollHeight; y += window.innerHeight / 2) {
+        window.scrollTo(0, y)
+        await new Promise((r) => setTimeout(r, 100))
+      }
+      window.scrollTo(0, 0)
+      await Promise.all(
+        [...document.images].map((img) =>
+          img.complete ? null : new Promise((r) => img.addEventListener('load', r, { once: true }) || img.addEventListener('error', r, { once: true })),
+        ),
+      )
+    })
     if (hoverSelector) await page.hover(hoverSelector)
     const file = `${OUT_DIR}/${label}-${vp.name}-${vp.width}.png`
     if (selector) {

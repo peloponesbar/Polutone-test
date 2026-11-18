@@ -1,6 +1,8 @@
 import Link from 'next/link'
 
-import type { Product } from '@/payload-types'
+import { imagesForColor } from '@/lib/catalog/images'
+import { defaultColor } from '@/lib/catalog/variants'
+import type { Media, Product } from '@/payload-types'
 
 import { asImage, MediaImage } from './MediaImage'
 import { PlaceholderArt } from './PlaceholderArt'
@@ -18,7 +20,10 @@ export function ProductCard({
   priority?: boolean
 }) {
   const Heading = headingLevel
-  const image = asImage(product.images?.[0])
+  // First photo of the color shown by default on the product page (first one in stock).
+  const photos = (product.images ?? []).map(asImage).filter((m): m is Media => m !== null)
+  const color = defaultColor((product.variants ?? []).map((v) => ({ ...v, color: v.color ?? '' })))
+  const image = imagesForColor(photos, color)[0] ?? photos[0] ?? null
   const category = typeof product.category === 'object' ? product.category?.name : null
   const prices = new Set(product.variants?.map((v) => v.price))
   const href = `/catalog/${product.slug}`

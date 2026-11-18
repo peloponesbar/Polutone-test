@@ -10,6 +10,7 @@ import { Categories } from './collections/Categories'
 import { Media } from './collections/Media'
 import { Products } from './collections/Products'
 import { Users } from './collections/Users'
+import { Home } from './globals/Home'
 import { s3Plugins } from './lib/s3'
 
 function requireEnv(name: string): string {
@@ -34,6 +35,7 @@ export default buildConfig({
     fallbackLanguage: 'ru',
   },
   collections: [Products, Categories, Media, Users],
+  globals: [Home],
   editor: lexicalEditor(),
   secret: requireEnv('PAYLOAD_SECRET'),
   typescript: {

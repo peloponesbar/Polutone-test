@@ -2,12 +2,11 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { Breadcrumbs } from '@/components/site/Breadcrumbs'
-import { asImage } from '@/components/site/MediaImage'
+import { asImage, toImageData } from '@/components/site/MediaImage'
 import { ProductCard } from '@/components/site/ProductCard'
 import { ProductBlocks } from '@/components/site/product/ProductBlocks'
-import { ProductGallery } from '@/components/site/product/ProductGallery'
 import { ProductInfo } from '@/components/site/product/ProductInfo'
-import { VariantPicker } from '@/components/site/product/VariantPicker'
+import { ProductView } from '@/components/site/product/ProductView'
 import { container, label } from '@/components/site/ui'
 import { getProductBySlug, listRelated } from '@/lib/catalog/queries'
 import type { Media } from '@/payload-types'
@@ -31,7 +30,10 @@ export default async function ProductPage({ params }: Props) {
 
   const related = await listRelated(product)
   const category = typeof product.category === 'object' ? product.category : null
-  const images = (product.images ?? []).map(asImage).filter((m): m is Media => m !== null)
+  const images = (product.images ?? [])
+    .map(asImage)
+    .filter((m): m is Media => m !== null)
+    .map(toImageData)
   const variants = (product.variants ?? []).map((v) => ({
     externalId: v.externalId,
     size: v.size,
@@ -50,12 +52,15 @@ export default async function ProductPage({ params }: Props) {
         ]}
       />
 
-      <div className="grid grid-cols-1 items-start gap-10 pt-6 md:grid-cols-12 md:gap-x-6">
-        <div className="md:col-span-7">
-          <ProductGallery images={images} seed={product.id} />
-        </div>
-
-        <div className="flex flex-col gap-6 md:sticky md:top-[132px] md:col-span-4 md:col-start-9">
+      <ProductView
+        productId={product.id}
+        images={images}
+        variants={variants}
+        price={product.price}
+        oldPrice={product.oldPrice ?? null}
+        hasSizeChart={Boolean(product.measurements)}
+        modelNote={product.modelNote}
+        heading={
           <div className="flex flex-col gap-2">
             <span className={`${label} text-primary/70`}>
               POLUTONE{category ? ` · ${category.name}` : ''}
@@ -67,22 +72,15 @@ export default async function ProductPage({ params }: Props) {
               </p>
             ) : null}
           </div>
-
-          <VariantPicker
-            variants={variants}
-            price={product.price}
-            oldPrice={product.oldPrice ?? null}
-            hasSizeChart={Boolean(product.measurements)}
-            modelNote={product.modelNote}
-          />
-
+        }
+        info={
           <ProductInfo
             composition={product.composition}
             care={product.care}
             measurements={product.measurements}
           />
-        </div>
-      </div>
+        }
+      />
 
       <div className="mt-16 md:mt-24">
         <ProductBlocks blocks={product.blocks} />

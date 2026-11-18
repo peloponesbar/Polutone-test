@@ -91,8 +91,12 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: null;
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    home: Home;
+  };
+  globalsSelect: {
+    home: HomeSelect<false> | HomeSelect<true>;
+  };
   locale: null;
   widgets: {
     collections: CollectionsWidget;
@@ -246,6 +250,10 @@ export interface Media {
    * Что на фото: вещь и посадка, без оценок («стильный образ» — нельзя).
    */
   alt: string;
+  /**
+   * Как в МойСкладе (например, «Шалфей»). На карточке товара фото показываются для выбранного цвета. Пусто — для всех цветов.
+   */
+  color?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -268,6 +276,10 @@ export interface Category {
   id: number;
   name: string;
   slug: string;
+  /**
+   * Показывается в разделе «Категории» на главной. Соотношение 4:5.
+   */
+  image?: (number | null) | Media;
   /**
    * Меньше — левее во вкладках каталога.
    */
@@ -485,6 +497,7 @@ export interface ProductsSelect<T extends boolean = true> {
 export interface CategoriesSelect<T extends boolean = true> {
   name?: T;
   slug?: T;
+  image?: T;
   order?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -495,6 +508,7 @@ export interface CategoriesSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  color?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -569,6 +583,72 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "home".
+ */
+export interface Home {
+  id: number;
+  hero?: {
+    /**
+     * Широкая, от 1600 px. Левая часть — под текст, без важных деталей.
+     */
+    image?: (number | null) | Media;
+    title?: string | null;
+    text?: string | null;
+  };
+  about?: {
+    title?: string | null;
+    /**
+     * Абзацы разделяйте пустой строкой.
+     */
+    text?: string | null;
+    image?: (number | null) | Media;
+  };
+  featured?: {
+    label?: string | null;
+    /**
+     * Пусто — блок не показывается.
+     */
+    product?: (number | null) | Product;
+    /**
+     * Пусто — берётся первое фото изделия.
+     */
+    image?: (number | null) | Media;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "home_select".
+ */
+export interface HomeSelect<T extends boolean = true> {
+  hero?:
+    | T
+    | {
+        image?: T;
+        title?: T;
+        text?: T;
+      };
+  about?:
+    | T
+    | {
+        title?: T;
+        text?: T;
+        image?: T;
+      };
+  featured?:
+    | T
+    | {
+        label?: T;
+        product?: T;
+        image?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

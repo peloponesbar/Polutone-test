@@ -6,7 +6,6 @@ import { Price } from '@/components/site/Price'
 import { buttonPrimary, label, tab, tabDisabled, tabOff, tabOn, textLink } from '@/components/site/ui'
 import {
   colorsOf,
-  defaultColor,
   defaultSize,
   findVariant,
   isInStock,
@@ -18,6 +17,9 @@ import { openDetails } from './openDetails'
 
 type Props = {
   variants: PickerVariant[]
+  /** Chosen color, owned by the parent so the gallery can follow it. */
+  color: string | null
+  onColorChange: (color: string) => void
   price: number
   oldPrice: number | null
   hasSizeChart: boolean
@@ -25,9 +27,16 @@ type Props = {
 }
 
 /** Color → size selection with live availability and price; add-to-cart arrives in phase 2. */
-export function VariantPicker({ variants, price, oldPrice, hasSizeChart, modelNote }: Props) {
+export function VariantPicker({
+  variants,
+  color,
+  onColorChange,
+  price,
+  oldPrice,
+  hasSizeChart,
+  modelNote,
+}: Props) {
   const colors = colorsOf(variants)
-  const [color, setColor] = useState<string | null>(() => defaultColor(variants))
   const [size, setSize] = useState<string | null>(() => defaultSize(variants, color))
   const [notice, setNotice] = useState<string | null>(null)
 
@@ -37,7 +46,7 @@ export function VariantPicker({ variants, price, oldPrice, hasSizeChart, modelNo
   const prices = new Set(variants.map((v) => v.price))
 
   function chooseColor(next: string) {
-    setColor(next)
+    onColorChange(next)
     setNotice(null)
     // Keep the size if it's still available in the new color.
     if (size && !sizeOptions(variants, next).some((o) => o.size === size && o.available)) setSize(null)

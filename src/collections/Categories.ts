@@ -32,6 +32,14 @@ export const Categories: CollectionConfig = {
       admin: { readOnly: true },
     },
     {
+      name: 'image',
+      label: 'Фото для главной',
+      type: 'upload',
+      relationTo: 'media',
+      filterOptions: { mimeType: { contains: 'image' } },
+      admin: { description: 'Показывается в разделе «Категории» на главной. Соотношение 4:5.' },
+    },
+    {
       name: 'order',
       label: 'Порядок в каталоге',
       type: 'number',

@@ -22,7 +22,7 @@ const payload = () => getPayload({ config })
 export async function listCategories(): Promise<Category[]> {
   const p = await payload()
   const [categories, products] = await Promise.all([
-    p.find({ collection: 'categories', sort: ['order', 'name'], limit: 100, depth: 0 }),
+    p.find({ collection: 'categories', sort: ['order', 'name'], limit: 100, depth: 1 }),
     p.find({ collection: 'products', where: PUBLIC_PRODUCTS, limit: 0, depth: 0, select: { category: true } }),
   ])
   const used = new Set(products.docs.map((d) => d.category))
@@ -77,4 +77,15 @@ export async function listRelated(product: Product, limit = 4): Promise<Product[
     0,
     limit,
   )
+}
+
+/** Newest visible products, in-stock first (home page "Новое"). */
+export async function listNewest(limit: number): Promise<Product[]> {
+  return (await listProducts({ sort: 'new' })).slice(0, limit)
+}
+
+/** Home page settings with images and the featured product populated. */
+export async function getHome() {
+  const p = await payload()
+  return p.findGlobal({ slug: 'home', depth: 2 })
 }
