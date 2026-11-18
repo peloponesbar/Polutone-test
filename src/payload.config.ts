@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 import sharp from 'sharp'
 
 import { Categories } from './collections/Categories'
+import { InfoPages } from './collections/InfoPages'
 import { Media } from './collections/Media'
 import { Products } from './collections/Products'
 import { Users } from './collections/Users'
@@ -34,7 +35,7 @@ export default buildConfig({
     supportedLanguages: { ru },
     fallbackLanguage: 'ru',
   },
-  collections: [Products, Categories, Media, Users],
+  collections: [Products, Categories, InfoPages, Media, Users],
   globals: [Home],
   editor: lexicalEditor(),
   secret: requireEnv('PAYLOAD_SECRET'),

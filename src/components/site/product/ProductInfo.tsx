@@ -1,7 +1,17 @@
-import { parseMeasurements } from '@/lib/catalog/sizes'
+import Link from 'next/link'
+
 import { SHOP_INFO } from '@/lib/shop-info'
 
-import { focusRing, label } from '../ui'
+import { SizeChartTable } from '../SizeChartTable'
+import { focusRing, label, textLink } from '../ui'
+
+function More({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className={`mt-2 inline-block ${textLink}`}>
+      {children}
+    </Link>
+  )
+}
 
 function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
   return (
@@ -25,45 +35,6 @@ function Section({ id, title, children }: { id: string; title: string; children:
       </summary>
       <div className="pb-6 font-sans text-caption tracking-body text-primary/80">{children}</div>
     </details>
-  )
-}
-
-function SizeChartTable({ text }: { text: string }) {
-  const chart = parseMeasurements(text)
-  if (!chart) return <p className="whitespace-pre-line">{text}</p>
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-left">
-        <caption className="sr-only">Таблица размеров, сантиметры</caption>
-        <thead>
-          <tr className="border-b border-primary/20">
-            {chart.headers.map((h) => (
-              <th key={h} scope="col" className="py-2 pr-4 font-medium text-primary">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {chart.rows.map((row) => (
-            <tr key={row[0]} className="border-b border-primary/10">
-              {row.map((cell, i) =>
-                i === 0 ? (
-                  <th key={i} scope="row" className="py-2 pr-4 font-medium text-primary">
-                    {cell}
-                  </th>
-                ) : (
-                  <td key={i} className="py-2 pr-4">
-                    {cell}
-                  </td>
-                ),
-              )}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   )
 }
 
@@ -94,12 +65,15 @@ export function ProductInfo({
       ) : null}
       <Section id="dostavka" title="Доставка">
         <p>{SHOP_INFO.delivery}</p>
+        <More href="/info/dostavka">Подробнее о доставке</More>
       </Section>
       <Section id="oplata" title="Оплата">
         <p>{SHOP_INFO.payment}</p>
+        <More href="/info/oplata">Подробнее об оплате</More>
       </Section>
       <Section id="vozvrat" title="Возврат">
         <p>{SHOP_INFO.returns}</p>
+        <More href="/info/vozvrat">Подробнее о возврате</More>
       </Section>
     </div>
   )

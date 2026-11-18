@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     products: Product;
     categories: Category;
+    'info-pages': InfoPage;
     media: Media;
     users: User;
     'payload-kv': PayloadKv;
@@ -80,6 +81,7 @@ export interface Config {
   collectionsSelect: {
     products: ProductsSelect<false> | ProductsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    'info-pages': InfoPagesSelect<false> | InfoPagesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
@@ -288,6 +290,42 @@ export interface Category {
   createdAt: string;
 }
 /**
+ * Пункты выпадающего меню «Информация» — в порядке поля «Порядок в меню».
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "info-pages".
+ */
+export interface InfoPage {
+  id: number;
+  published?: boolean | null;
+  menuOrder?: number | null;
+  /**
+   * Латиницей, например «dostavka» → /info/dostavka.
+   */
+  slug: string;
+  title: string;
+  /**
+   * Одна-две фразы под заголовком.
+   */
+  intro?: string | null;
+  sections?:
+    | {
+        heading?: string | null;
+        /**
+         * Абзацы разделяйте пустой строкой.
+         */
+        text: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Для страницы «Таблица размеров»: под текстом — обмеры каждой модели из МойСклада.
+   */
+  showSizeCharts?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "users".
  */
@@ -344,6 +382,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'categories';
         value: number | Category;
+      } | null)
+    | ({
+        relationTo: 'info-pages';
+        value: number | InfoPage;
       } | null)
     | ({
         relationTo: 'media';
@@ -499,6 +541,27 @@ export interface CategoriesSelect<T extends boolean = true> {
   slug?: T;
   image?: T;
   order?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "info-pages_select".
+ */
+export interface InfoPagesSelect<T extends boolean = true> {
+  published?: T;
+  menuOrder?: T;
+  slug?: T;
+  title?: T;
+  intro?: T;
+  sections?:
+    | T
+    | {
+        heading?: T;
+        text?: T;
+        id?: T;
+      };
+  showSizeCharts?: T;
   updatedAt?: T;
   createdAt?: T;
 }

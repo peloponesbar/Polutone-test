@@ -1,11 +1,15 @@
 import Link from 'next/link'
 
+import { listInfoLinks } from '@/lib/info'
+
 import { container, label } from './ui'
 
 const footerLink =
   'inline-flex min-h-[44px] items-center font-sans text-caption tracking-body text-background underline-offset-4 hover:underline hover:decoration-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background'
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const infoLinks = await listInfoLinks()
+
   return (
     <footer className="border-t border-background/10 bg-primary text-background">
       <div className={`${container} py-16`}>
@@ -22,6 +26,17 @@ export function SiteFooter() {
             <Link href="/catalog" className={footerLink}>
               Каталог
             </Link>
+            <Link href="/blog" className={footerLink}>
+              Блог
+            </Link>
+          </nav>
+          <nav aria-label="Информация (подвал)" className="col-span-4 flex flex-col md:col-span-3 md:col-start-7">
+            <span className={`${label} mb-2 text-background/70`}>Информация</span>
+            {infoLinks.map((link) => (
+              <Link key={link.href} href={link.href} className={footerLink}>
+                {link.label}
+              </Link>
+            ))}
           </nav>
         </div>
         <div className="mt-16 border-t border-background/10 pt-6">

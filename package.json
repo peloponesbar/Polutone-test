@@ -18,7 +18,8 @@
     "screenshot": "node scripts/screenshot.mjs",
     "sync": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/sync.ts",
     "seed:mock": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/publish-mock.ts",
-    "seed:photos": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/import-photos.ts"
+    "seed:photos": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/import-photos.ts",
+    "seed:info": "cross-env NODE_OPTIONS=--no-deprecation payload run src/scripts/seed-info.ts"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "3.94.0",
