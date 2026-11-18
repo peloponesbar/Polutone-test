@@ -28,23 +28,23 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* 1. Hero: text on the milk field, photo beside it (no overlays — brandbook) */}
-      <section aria-labelledby="hero-title" className="relative md:h-[760px]">
-        <div className="relative aspect-[4/5] overflow-hidden bg-surface md:absolute md:inset-y-0 md:right-0 md:aspect-auto md:w-[62%]">
-          {heroImage ? (
-            <MediaImage
-              media={heroImage}
-              priority
-              sizes="(min-width: 768px) 62vw, 100vw"
-              className="object-[62%_center] md:object-[75%_center]"
-            />
-          ) : null}
-        </div>
-        <div className={`${container} relative flex h-full items-end py-10 md:py-20`}>
-          <div className="flex flex-col gap-6 md:w-[36%]">
-            <h1 id="hero-title" className="font-display text-hero-m font-light text-primary md:text-hero">
-              {home.hero?.title || 'Выразительность в полутоне.'}
-            </h1>
+      {/* 1. Hero: photo first, text below it — normal flow, so they never overlap at any width */}
+      <section aria-labelledby="hero-title">
+        {heroImage ? (
+          // Desktop shows the whole 16:9 photo uncropped; phones crop to 4:5 around the centre figure.
+          <div className="relative aspect-[4/5] overflow-hidden bg-surface md:aspect-[16/9]">
+            <MediaImage media={heroImage} priority sizes="100vw" className="object-[62%_center] md:object-center" />
+          </div>
+        ) : null}
+        {/* Heading and text sit side by side only from 1280 px, where the 64 px heading fits its column. */}
+        <div className={`${container} grid grid-cols-12 gap-6 py-10 md:py-16 xl:items-end`}>
+          <h1
+            id="hero-title"
+            className="col-span-12 font-display text-hero-m font-light text-primary md:text-hero xl:col-span-7"
+          >
+            {home.hero?.title || 'Выразительность в полутоне.'}
+          </h1>
+          <div className="col-span-12 flex flex-col gap-6 md:col-span-8 xl:col-span-5 xl:col-start-8">
             {home.hero?.text ? (
               <p className="max-w-[60ch] font-sans text-body-m tracking-body text-primary/80 md:text-body">
                 {home.hero.text}
