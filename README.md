@@ -32,3 +32,20 @@ Next.js 16 + Payload CMS 3 + PostgreSQL + Tailwind 4. Фото — Timeweb S3.
 - `tests/unit`, `tests/int`, `tests/e2e` — тесты
 
 Ключи и пароли — только в `.env`, он не коммитится.
+
+## Тестовый сайт на Vercel
+
+Vercel собирает сайт из GitHub после каждого коммита (скрипт `vercel-build`: сначала `payload migrate`, потом `next build`).
+
+Переменные окружения в Vercel (Settings → Environment Variables):
+
+| Переменная | Значение |
+|---|---|
+| `DATABASE_URL` | Строка подключения Neon (pooled, `...-pooler...neon.tech/...?sslmode=require`) |
+| `PAYLOAD_SECRET` | Длинная случайная строка, своя для этого сайта |
+| `CATALOG_SOURCE` | `mock` |
+| `SITE_PASSWORD` | Пароль на весь сайт (имя пользователя любое); пусто — сайт открыт |
+
+Наполнение базы Neon тестовыми товарами и страницами «Информация» — с этого компьютера:
+положить строку Neon в `.env` как `NEON_DATABASE_URL`, затем выполнить с `DATABASE_URL`, равным ей:
+`npm run migrate`, `npm run seed:info`, `npm run seed:mock`. Фото (`seed:photos`) на тестовый сайт не загружаются.

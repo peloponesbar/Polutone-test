@@ -5,6 +5,8 @@ import { Breadcrumbs } from '@/components/site/Breadcrumbs'
 import { buttonSecondary, container } from '@/components/site/ui'
 
 export const metadata: Metadata = { title: 'Блог — POLUTONE' }
+// Dynamic so the header menu (from the admin) is always current.
+export const dynamic = 'force-dynamic'
 
 /** Placeholder until blog posts are built (decided 2026-11-18: menu item first, posts later). */
 export default function BlogPage() {
