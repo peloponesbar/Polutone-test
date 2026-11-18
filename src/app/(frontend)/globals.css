@@ -1,0 +1,90 @@
+@import 'tailwindcss';
+
+/*
+ * POLUTONE brand tokens — source of truth: DESIGN_SYSTEM.md (brandbook v3).
+ * Default Tailwind palettes, radii, shadows, fonts and weights are removed,
+ * so forbidden classes (blue-500, rounded-lg, shadow-md, font-bold…) simply don't exist.
+ */
+@theme {
+  /* Colors — brand palette only */
+  --color-*: initial;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+  --color-background: #f2efe9; /* Молочный */
+  --color-primary: #282a29; /* Графит */
+  --color-surface: #c8c2b9; /* Камень */
+  --color-accent: #9ea99b; /* Шалфей */
+  --color-accent-rose: #b4a1aa; /* Припылённая роза */
+  --color-accent-blue: #9faeb8; /* Дымчатый синий */
+
+  /* No radii, no shadows */
+  --radius-*: initial;
+  --shadow-*: initial;
+  --inset-shadow-*: initial;
+  --drop-shadow-*: initial;
+  --text-shadow-*: initial;
+
+  /* Fonts — Jura (display) + Onest (text/UI), loaded via next/font/local */
+  --font-*: initial;
+  --font-display: var(--font-jura), sans-serif;
+  --font-sans: var(--font-onest), sans-serif;
+
+  /* Only the weights the brand ships: no bold/semibold */
+  --font-weight-*: initial;
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+
+  /* Type scale (brandbook p.13): size / line-height */
+  --text-*: initial;
+  --text-hero: 64px;
+  --text-hero--line-height: 72px;
+  --text-hero-m: 36px;
+  --text-hero-m--line-height: 44px;
+  --text-h1: 48px;
+  --text-h1--line-height: 56px;
+  --text-h1-m: 32px;
+  --text-h1-m--line-height: 40px;
+  --text-h2: 32px;
+  --text-h2--line-height: 40px;
+  --text-h2-m: 24px;
+  --text-h2-m--line-height: 32px;
+  --text-body: 18px;
+  --text-body--line-height: 28px;
+  --text-body-m: 16px;
+  --text-body-m--line-height: 26px;
+  --text-caption: 14px;
+  --text-caption--line-height: 22px;
+  --text-label: 14px;
+  --text-label--line-height: 20px;
+
+  --tracking-body: 0.04em;
+  --tracking-logo: 0.055em;
+
+  --container-content: 1280px;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-background);
+    color: var(--color-primary);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    letter-spacing: var(--tracking-body);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Quiet motion only; respect reduced-motion everywhere */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

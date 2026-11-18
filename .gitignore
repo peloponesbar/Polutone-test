@@ -1,17 +1,30 @@
 # Dependencies
 node_modules/
+.pnp
+.pnp.js
 
 # Build output
-dist/
-build/
 .next/
-.astro/
 out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
 
 # Secrets — never commit
 .env
 .env.*
 !.env.example
+
+# Local uploads (production images live in S3)
+/media
+
+# Testing
+/coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 
 # Design-check screenshots
 screenshots/
@@ -19,8 +32,8 @@ screenshots/
 # OS / editor
 .DS_Store
 Thumbs.db
-.vscode/
 .idea/
+*.pem
 
 # Logs
 *.log
