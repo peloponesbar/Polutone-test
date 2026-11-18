@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.next/
+.astro/
+out/
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Design-check screenshots
+screenshots/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
