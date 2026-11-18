@@ -3,7 +3,7 @@
 import { useState } from 'react'
 
 import { imagesForColor } from '@/lib/catalog/images'
-import { defaultColor, type PickerVariant } from '@/lib/catalog/variants'
+import { colorsOf, defaultColor, type PickerVariant } from '@/lib/catalog/variants'
 
 import type { ImageData } from '../MediaImage'
 import { ProductGallery } from './ProductGallery'
@@ -11,6 +11,8 @@ import { VariantPicker } from './VariantPicker'
 
 type Props = {
   productId: number
+  /** Color requested in the URL (?color=), used when the product has it. */
+  requestedColor?: string | null
   images: ImageData[]
   variants: PickerVariant[]
   price: number
@@ -24,8 +26,10 @@ type Props = {
 }
 
 /** Gallery + buy panel sharing the chosen color, so the photos show that color. */
-export function ProductView({ productId, images, variants, heading, info, ...picker }: Props) {
-  const [color, setColor] = useState<string | null>(() => defaultColor(variants))
+export function ProductView({ productId, requestedColor, images, variants, heading, info, ...picker }: Props) {
+  const [color, setColor] = useState<string | null>(() =>
+    requestedColor && colorsOf(variants).includes(requestedColor) ? requestedColor : defaultColor(variants),
+  )
 
   return (
     <div className="grid grid-cols-1 items-start gap-10 pt-6 md:grid-cols-12 md:gap-x-6">

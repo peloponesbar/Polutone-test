@@ -13,7 +13,10 @@ import type { Media } from '@/payload-types'
 
 export const dynamic = 'force-dynamic'
 
-type Props = { params: Promise<{ slug: string }> }
+type Props = {
+  params: Promise<{ slug: string }>
+  searchParams: Promise<{ color?: string | string[] }>
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await getProductBySlug((await params).slug)
@@ -24,8 +27,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default async function ProductPage({ params }: Props) {
+export default async function ProductPage({ params, searchParams }: Props) {
   const product = await getProductBySlug((await params).slug)
+  const { color } = await searchParams
   if (!product) notFound()
 
   const related = await listRelated(product)
@@ -54,6 +58,7 @@ export default async function ProductPage({ params }: Props) {
 
       <ProductView
         productId={product.id}
+        requestedColor={typeof color === 'string' ? color : null}
         images={images}
         variants={variants}
         price={product.price}
