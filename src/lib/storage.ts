@@ -19,21 +19,23 @@ export function storageKind(env: Env): StorageKind {
   return 'local'
 }
 
+/**
+ * Storage plugins for `media`. Cloud storage adds two columns (prefix, object key); they are
+ * inserted in every environment (`alwaysInsertFields`), so the database schema — and the
+ * migrations generated locally — are the same whether storage is on or off.
+ */
 export function storagePlugins(env: Env): Plugin[] {
-  switch (storageKind(env)) {
-    case 's3':
-      return s3Plugins(env)
-    case 'blob':
-      return [
-        vercelBlobStorage({
-          token: env.BLOB_READ_WRITE_TOKEN!.trim(),
-          // Public store: browsers load images straight from Blob, not through the app.
-          collections: { media: { prefix: 'media', disablePayloadAccessControl: true } },
-        }),
-      ]
-    default:
-      return []
-  }
+  const kind = storageKind(env)
+  if (kind === 's3') return s3Plugins(env)
+  return [
+    vercelBlobStorage({
+      enabled: kind === 'blob',
+      alwaysInsertFields: true,
+      token: env.BLOB_READ_WRITE_TOKEN?.trim() ?? '',
+      // Public store: browsers load images straight from Blob, not through the app.
+      collections: { media: { prefix: 'media', disablePayloadAccessControl: true } },
+    }),
+  ]
 }
 
 /** True when uploads go to cloud storage that a deployment can serve. */

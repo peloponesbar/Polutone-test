@@ -16,7 +16,8 @@ describe('storage choice', () => {
   it('keeps uploads on the local disk without cloud settings', () => {
     expect(storageKind({})).toBe('local')
     expect(storageKind({ BLOB_READ_WRITE_TOKEN: '  ' })).toBe('local')
-    expect(storagePlugins({})).toEqual([])
+    // The plugin is still there, only to keep the storage columns in the schema.
+    expect(storagePlugins({})).toHaveLength(1)
     expect(hasCloudStorage({})).toBe(false)
   })
 
