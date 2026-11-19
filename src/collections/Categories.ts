@@ -6,7 +6,8 @@ export const Categories: CollectionConfig = {
   labels: { singular: 'Категория', plural: 'Категории' },
   admin: {
     useAsTitle: 'name',
-    defaultColumns: ['name', 'slug', 'order'],
+    group: 'Магазин',
+    defaultColumns: ['image', 'name', 'slug', 'order'],
     description: 'Создаются автоматически при синхронизации по папкам МойСклада.',
   },
   defaultSort: 'order',
@@ -37,7 +38,10 @@ export const Categories: CollectionConfig = {
       type: 'upload',
       relationTo: 'media',
       filterOptions: { mimeType: { contains: 'image' } },
-      admin: { description: 'Показывается в разделе «Категории» на главной. Соотношение 4:5.' },
+      admin: {
+        description: 'Показывается в разделе «Категории» на главной. Соотношение 4:5.',
+        components: { Cell: '/components/admin/cells#ThumbCell' },
+      },
     },
     {
       name: 'order',

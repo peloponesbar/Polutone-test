@@ -75,6 +75,16 @@
     letter-spacing: var(--tracking-body);
     -webkit-font-smoothing: antialiased;
   }
+
+  /* Tailwind 4 leaves buttons with the arrow cursor; everything clickable shows the hand. */
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  [role='radio']:not([aria-disabled='true']),
+  summary,
+  select,
+  label:has(> input:not(:disabled)) {
+    cursor: pointer;
+  }
 }
 
 /* Quiet motion only; respect reduced-motion everywhere */

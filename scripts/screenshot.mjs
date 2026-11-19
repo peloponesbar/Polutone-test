@@ -17,11 +17,43 @@ const label = process.argv[3] ?? 'home'
 const selector = process.argv[4]
 const hoverSelector = process.argv[5]
 
+/**
+ * Admin pages need a session: with SCREENSHOT_EMAIL / SCREENSHOT_PASSWORD set (a local
+ * test user, e.g. the e2e fixture from tests/helpers/seedUser.ts), log in through the API first.
+ */
+async function adminCookies() {
+  const email = process.env.SCREENSHOT_EMAIL
+  const password = process.env.SCREENSHOT_PASSWORD
+  if (!email || !password) return []
+  const origin = new URL(url).origin
+  const res = await fetch(`${origin}/api/users/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
+  if (!res.ok) throw new Error(`Admin login failed: ${res.status}`)
+  const { token } = await res.json()
+  return [{ name: 'payload-token', value: token, url: origin }]
+}
+
+/** SCREENSHOT_STORAGE='{"key":"value"}' pre-fills localStorage (e.g. a cart) before the page loads. */
+const storage = process.env.SCREENSHOT_STORAGE ? JSON.parse(process.env.SCREENSHOT_STORAGE) : null
+
 await mkdir(OUT_DIR, { recursive: true })
+const cookies = await adminCookies()
 const browser = await puppeteer.launch({ headless: 'shell' })
 try {
   for (const vp of VIEWPORTS) {
     const page = await browser.newPage()
+    if (cookies.length) await page.setCookie(...cookies)
+    if (storage) {
+      await page.evaluateOnNewDocument((entries) => {
+        // Also runs on about:blank, where storage is off limits.
+        if (location.protocol.startsWith('http')) {
+          for (const [key, value] of Object.entries(entries)) localStorage.setItem(key, value)
+        }
+      }, storage)
+    }
     page.on('pageerror', (err) => console.error(`[${vp.name}] page error:`, err.message))
     page.on('requestfailed', (req) => console.error(`[${vp.name}] failed:`, req.url()))
     await page.setViewport(vp)

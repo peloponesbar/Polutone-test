@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { draftMode } from 'next/headers'
 import { notFound } from 'next/navigation'
 
 import { Breadcrumbs } from '@/components/site/Breadcrumbs'
@@ -13,13 +14,16 @@ export const dynamic = 'force-dynamic'
 type Props = { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const page = await getInfoPage((await params).slug)
+  const page = await getInfoPage((await params).slug, { draft: (await draftMode()).isEnabled })
   return { title: page ? `${page.title} — POLUTONE` : 'Страница не найдена — POLUTONE' }
 }
 
 export default async function InfoPageView({ params }: Props) {
   const { slug } = await params
-  const [page, links] = await Promise.all([getInfoPage(slug), listInfoLinks()])
+  const [page, links] = await Promise.all([
+    getInfoPage(slug, { draft: (await draftMode()).isEnabled }),
+    listInfoLinks(),
+  ])
   if (!page) notFound()
 
   const charts = page.showSizeCharts

@@ -17,6 +17,16 @@ export function colorHex(name: string): string | null {
   return COLOR_HEX[name.trim().toLowerCase()] ?? null
 }
 
+/**
+ * Text color readable on a swatch: milk on dark fills (graphite), graphite on the light ones.
+ * Brand pairs: graphite on milk ≈ 14:1, on sage/rose/blue ≈ 5–6:1, milk on graphite ≈ 14:1.
+ */
+export function textOnSwatch(hex: string): 'dark' | 'light' {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+  return luminance < 0.4 ? 'light' : 'dark'
+}
+
 export type CardColor<TImage> = {
   name: string
   hex: string | null

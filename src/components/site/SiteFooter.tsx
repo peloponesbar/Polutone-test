@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { Logo } from '@/components/brand/Logo'
 import { listInfoLinks } from '@/lib/info'
 
 import { container, label } from './ui'
@@ -15,8 +16,10 @@ export async function SiteFooter() {
       <div className={`${container} py-16`}>
         <div className="grid grid-cols-4 gap-x-4 gap-y-10 md:grid-cols-12 md:gap-x-6">
           <div className="col-span-4 flex flex-col gap-4 md:col-span-3">
-            {/* eslint-disable-next-line @next/next/no-img-element -- brand SVG at fixed width */}
-            <img src="/logos/POLUTONE_mono_milk.svg" alt="POLUTONE" width={140} height={32} />
+            {/* Two-tone on dark (sage_dark), 180 px — the brandbook minimum for the two-tone logo. */}
+            <Link href="/" aria-label="POLUTONE — на главную" className="inline-flex min-h-[44px] items-center self-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-background">
+              <Logo width={180} tone="dark" />
+            </Link>
             <p className="font-sans text-caption tracking-body text-background/70">
               Выразительность в полутоне.
             </p>

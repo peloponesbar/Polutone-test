@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Breadcrumbs } from '@/components/site/Breadcrumbs'
 import { ProductCard } from '@/components/site/ProductCard'
 import { SortSelect } from '@/components/site/SortSelect'
-import { container, tab, tabOff, tabOn } from '@/components/site/ui'
+import { container, tab, tabOff, tabOn, textLink } from '@/components/site/ui'
 import { listCategories, listProducts, parseSort, SORT_OPTIONS } from '@/lib/catalog/queries'
 import { pluralize } from '@/lib/plural'
 
@@ -77,7 +77,7 @@ export default async function CatalogPage({ searchParams }: Props) {
       ) : (
         <p className="font-sans text-body-m tracking-body text-primary/80 md:text-body">
           В этой категории пока ничего нет.{' '}
-          <Link href="/catalog" className="underline decoration-accent underline-offset-4">
+          <Link href="/catalog" className={textLink}>
             Весь каталог
           </Link>
         </p>

@@ -17,7 +17,7 @@ function Section({ id, title, children }: { id: string; title: string; children:
   return (
     <details id={id} className="group scroll-mt-40 border-b border-primary/10">
       <summary
-        className={`flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 ${label} [&::-webkit-details-marker]:hidden ${focusRing}`}
+        className={`flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 transition-colors duration-300 hover:text-primary/70 ${label} [&::-webkit-details-marker]:hidden ${focusRing}`}
       >
         {title}
         <svg

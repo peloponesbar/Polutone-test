@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     products: Product;
     categories: Category;
+    orders: Order;
     'info-pages': InfoPage;
     media: Media;
     users: User;
@@ -81,6 +82,7 @@ export interface Config {
   collectionsSelect: {
     products: ProductsSelect<false> | ProductsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
+    orders: OrdersSelect<false> | OrdersSelect<true>;
     'info-pages': InfoPagesSelect<false> | InfoPagesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
@@ -135,7 +137,6 @@ export interface UserAuthOperations {
  */
 export interface Product {
   id: number;
-  published?: boolean | null;
   /**
    * Задаётся один раз, чтобы ссылки не менялись.
    */
@@ -146,7 +147,7 @@ export interface Product {
   inSource?: boolean | null;
   syncedAt?: string | null;
   /**
-   * Первое фото — в каталоге и первым в галерее. Соотношение 4:5.
+   * По порядку показа: первое — в каталоге и первым в галерее. Соотношение 4:5.
    */
   images?: (number | Media)[] | null;
   /**
@@ -241,6 +242,7 @@ export interface Product {
     | null;
   updatedAt: string;
   createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -290,6 +292,56 @@ export interface Category {
   createdAt: string;
 }
 /**
+ * Заказы с сайта. Состав и суммы — как в момент оформления; меняются статус и заметка.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders".
+ */
+export interface Order {
+  id: number;
+  title: string;
+  number: number;
+  status: 'awaiting_payment' | 'paid' | 'assembling' | 'shipped' | 'delivered' | 'cancelled';
+  token: string;
+  /**
+   * Пусто — заказ не передан в МойСклад: создайте его там вручную.
+   */
+  moyskladId?: string | null;
+  /**
+   * Покупатель её не видит.
+   */
+  note?: string | null;
+  items: {
+    product?: (number | null) | Product;
+    variantId: string;
+    title: string;
+    color?: string | null;
+    size?: string | null;
+    price: number;
+    qty: number;
+    lineTotal: number;
+    id?: string | null;
+  }[];
+  itemsTotal: number;
+  /**
+   * Пусто — стоимость доставки сообщается покупателю отдельно.
+   */
+  deliveryCost?: number | null;
+  total: number;
+  customerName: string;
+  phone: string;
+  email: string;
+  deliveryService: 'cdek' | 'yandex' | 'post';
+  deliveryMethod: 'pickup' | 'courier';
+  city: string;
+  address: string;
+  paymentMethod: 'online';
+  comment?: string | null;
+  consentAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * Пункты выпадающего меню «Информация» — в порядке поля «Порядок в меню».
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -297,7 +349,6 @@ export interface Category {
  */
 export interface InfoPage {
   id: number;
-  published?: boolean | null;
   menuOrder?: number | null;
   /**
    * Латиницей, например «dostavka» → /info/dostavka.
@@ -324,6 +375,7 @@ export interface InfoPage {
   showSizeCharts?: boolean | null;
   updatedAt: string;
   createdAt: string;
+  _status?: ('draft' | 'published') | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -384,6 +436,10 @@ export interface PayloadLockedDocument {
         value: number | Category;
       } | null)
     | ({
+        relationTo: 'orders';
+        value: number | Order;
+      } | null)
+    | ({
         relationTo: 'info-pages';
         value: number | InfoPage;
       } | null)
@@ -442,7 +498,6 @@ export interface PayloadMigration {
  * via the `definition` "products_select".
  */
 export interface ProductsSelect<T extends boolean = true> {
-  published?: T;
   slug?: T;
   inSource?: T;
   syncedAt?: T;
@@ -531,6 +586,7 @@ export interface ProductsSelect<T extends boolean = true> {
       };
   updatedAt?: T;
   createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -546,10 +602,49 @@ export interface CategoriesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "orders_select".
+ */
+export interface OrdersSelect<T extends boolean = true> {
+  title?: T;
+  number?: T;
+  status?: T;
+  token?: T;
+  moyskladId?: T;
+  note?: T;
+  items?:
+    | T
+    | {
+        product?: T;
+        variantId?: T;
+        title?: T;
+        color?: T;
+        size?: T;
+        price?: T;
+        qty?: T;
+        lineTotal?: T;
+        id?: T;
+      };
+  itemsTotal?: T;
+  deliveryCost?: T;
+  total?: T;
+  customerName?: T;
+  phone?: T;
+  email?: T;
+  deliveryService?: T;
+  deliveryMethod?: T;
+  city?: T;
+  address?: T;
+  paymentMethod?: T;
+  comment?: T;
+  consentAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "info-pages_select".
  */
 export interface InfoPagesSelect<T extends boolean = true> {
-  published?: T;
   menuOrder?: T;
   slug?: T;
   title?: T;
@@ -564,6 +659,7 @@ export interface InfoPagesSelect<T extends boolean = true> {
   showSizeCharts?: T;
   updatedAt?: T;
   createdAt?: T;
+  _status?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -680,6 +776,7 @@ export interface Home {
      */
     image?: (number | null) | Media;
   };
+  _status?: ('draft' | 'published') | null;
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -709,6 +806,7 @@ export interface HomeSelect<T extends boolean = true> {
         product?: T;
         image?: T;
       };
+  _status?: T;
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

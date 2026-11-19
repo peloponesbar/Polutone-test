@@ -6,7 +6,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 
 import type { InfoLink } from '@/lib/info'
 
-import { focusRing, label, navLink } from './ui'
+import { focusRing, hoverInvert, label, navLink } from './ui'
 
 const isActive = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`)
 
@@ -102,7 +102,7 @@ function MobileMenu({ links }: { links: InfoLink[] }) {
   const panelId = useId()
   useDismiss(open, () => setOpen(false), ref)
 
-  const item = `flex min-h-[44px] items-center font-sans text-body-m tracking-body text-primary ${focusRing}`
+  const item = `-mx-2 flex min-h-[44px] items-center px-2 font-sans text-body-m tracking-body text-primary transition-colors duration-300 hover:bg-surface/40 ${focusRing}`
 
   return (
     <div ref={ref} className="md:hidden">
@@ -111,7 +111,7 @@ function MobileMenu({ links }: { links: InfoLink[] }) {
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((v) => !v)}
-        className={`inline-flex min-h-[44px] items-center border border-primary/20 px-4 ${label} text-primary ${focusRing}`}
+        className={`inline-flex min-h-[44px] items-center border border-primary/20 px-4 ${label} text-primary ${hoverInvert} ${focusRing}`}
       >
         {open ? 'Закрыть' : 'Меню'}
       </button>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { cardColors, colorHex } from '@/lib/catalog/colors'
+import { cardColors, colorHex, textOnSwatch } from '@/lib/catalog/colors'
 
 describe('colorHex', () => {
   it('maps brand color names regardless of case and spaces', () => {
@@ -42,5 +42,14 @@ describe('cardColors', () => {
 
   it('ignores variants without a color', () => {
     expect(cardColors([{ color: null, available: 1 }, { color: '', available: 1 }], [])).toEqual([])
+  })
+})
+
+describe('textOnSwatch', () => {
+  it('puts milk text on graphite and graphite text on the light brand colors', () => {
+    expect(textOnSwatch(colorHex('Графит')!)).toBe('light')
+    for (const name of ['Молочный', 'Шалфей', 'Пыльная роза', 'Дымчатый синий', 'Камень']) {
+      expect(textOnSwatch(colorHex(name)!)).toBe('dark')
+    }
   })
 })

@@ -9,10 +9,12 @@ import sharp from 'sharp'
 import { Categories } from './collections/Categories'
 import { InfoPages } from './collections/InfoPages'
 import { Media } from './collections/Media'
+import { Orders } from './collections/Orders'
 import { Products } from './collections/Products'
 import { Users } from './collections/Users'
 import { Home } from './globals/Home'
-import { s3Plugins } from './lib/s3'
+import { PREVIEW_BREAKPOINTS } from './lib/preview'
+import { storagePlugins } from './lib/storage'
 
 function requireEnv(name: string): string {
   const value = process.env[name]?.trim()
@@ -26,7 +28,29 @@ const dirname = path.dirname(filename)
 export default buildConfig({
   admin: {
     user: Users.slug,
-    meta: { titleSuffix: '— POLUTONE' },
+    meta: {
+      titleSuffix: '— POLUTONE',
+      description: 'Админка POLUTONE',
+      // No Payload-branded link previews.
+      defaultOGImageType: 'off',
+      openGraph: { siteName: 'POLUTONE', title: 'Админка POLUTONE', description: 'Админка POLUTONE' },
+      icons: [{ rel: 'icon', type: 'image/svg+xml', url: '/brand/polutone-o.svg' }],
+    },
+    // The brand palette is light: milk background, graphite text.
+    theme: 'light',
+    // Russian 24-hour dates instead of «ноября 19-е 2026, 5:01 ПП».
+    dateFormat: 'd MMMM yyyy, HH:mm',
+    avatar: { Component: '/components/admin/Avatar#Avatar' },
+    components: {
+      beforeDashboard: ['/components/admin/Dashboard#Dashboard'],
+      afterNavLinks: ['/components/admin/Dashboard#SiteLink'],
+      graphics: {
+        Logo: '/components/admin/Brand#Logo',
+        Icon: '/components/admin/Brand#Icon',
+      },
+    },
+    // Device sizes for Live Preview; the preview URL is set per collection / global.
+    livePreview: { breakpoints: PREVIEW_BREAKPOINTS },
     importMap: {
       baseDir: path.resolve(dirname),
     },
@@ -34,8 +58,10 @@ export default buildConfig({
   i18n: {
     supportedLanguages: { ru },
     fallbackLanguage: 'ru',
+    // Payload's Russian «searchBy» drops the field name: the search box read «Искать по».
+    translations: { ru: { general: { searchBy: 'Искать: {{label}}', or: 'или' } } },
   },
-  collections: [Products, Categories, InfoPages, Media, Users],
+  collections: [Products, Categories, Orders, InfoPages, Media, Users],
   globals: [Home],
   editor: lexicalEditor(),
   secret: requireEnv('PAYLOAD_SECRET'),
@@ -48,5 +74,5 @@ export default buildConfig({
     },
   }),
   sharp,
-  plugins: [...s3Plugins(process.env)],
+  plugins: [...storagePlugins(process.env)],
 })

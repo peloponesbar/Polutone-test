@@ -4,6 +4,7 @@ export const Media: CollectionConfig = {
   slug: 'media',
   labels: { singular: 'Файл', plural: 'Фото и видео' },
   admin: {
+    group: 'Контент',
     defaultColumns: ['filename', 'alt', 'color'],
   },
   access: {

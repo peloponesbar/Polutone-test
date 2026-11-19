@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { draftMode } from 'next/headers'
 import { notFound } from 'next/navigation'
 
 import { Breadcrumbs } from '@/components/site/Breadcrumbs'
@@ -19,7 +20,7 @@ type Props = {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const product = await getProductBySlug((await params).slug)
+  const product = await getProductBySlug((await params).slug, { draft: (await draftMode()).isEnabled })
   if (!product) return { title: 'Изделие не найдено — POLUTONE' }
   return {
     title: `${product.title} — POLUTONE`,
@@ -28,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params, searchParams }: Props) {
-  const product = await getProductBySlug((await params).slug)
+  const product = await getProductBySlug((await params).slug, { draft: (await draftMode()).isEnabled })
   const { color } = await searchParams
   if (!product) notFound()
 

@@ -18,11 +18,11 @@ describe('build-time test data', () => {
   })
 
   it('first run creates and publishes the catalog and info pages', async () => {
-    expect(await seedInfoPages(payload)).toEqual({ created: 6 })
+    expect(await seedInfoPages(payload)).toEqual({ created: 7 })
     const report = await seedTestCatalog(payload)
 
     expect(report).toMatchObject({ created: 6, firstRun: true })
-    const published = await payload.count({ collection: 'products', where: { published: { equals: true } } })
+    const published = await payload.count({ collection: 'products', where: { _status: { equals: 'published' } } })
     expect(published.totalDocs).toBe(6)
   })
 
@@ -32,7 +32,7 @@ describe('build-time test data', () => {
     await payload.update({
       collection: 'products',
       where: { article: { equals: 'T01' } },
-      data: { published: false, description: 'Изменено в админке' },
+      data: { _status: 'draft', description: 'Изменено в админке' },
     })
     await payload.update({ collection: 'info-pages', where: { slug: { equals: 'uhod' } }, data: { intro: 'Свой текст' } })
 
@@ -40,7 +40,7 @@ describe('build-time test data', () => {
     expect(await seedTestCatalog(payload)).toMatchObject({ created: 0, updated: 6, firstRun: false })
 
     const t01 = (await payload.find({ collection: 'products', where: { article: { equals: 'T01' } } })).docs[0]
-    expect(t01.published).toBe(false)
+    expect(t01._status).toBe('draft')
     expect(t01.description).toBe('Изменено в админке')
     const care = (await payload.find({ collection: 'info-pages', where: { slug: { equals: 'uhod' } } })).docs[0]
     expect(care.intro).toBe('Свой текст')

@@ -31,7 +31,7 @@ export function SortSelect({
         id="sort"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={`min-h-[44px] appearance-none border border-primary/20 bg-transparent py-0 pr-10 pl-4 font-sans text-caption tracking-body text-primary ${focusRing}`}
+        className={`min-h-[44px] cursor-pointer appearance-none border border-primary/20 bg-transparent transition-colors duration-300 hover:border-primary py-0 pr-10 pl-4 font-sans text-caption tracking-body text-primary ${focusRing}`}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>

@@ -1,18 +1,17 @@
 import config from '@payload-config'
-import { getPayload } from 'payload'
+import { getPayload, type Where } from 'payload'
 
+import { PUBLISHED } from '@/lib/preview'
 import type { InfoPage } from '@/payload-types'
 
 export type InfoLink = { href: string; label: string }
-
-const publicPages = { published: { equals: true } } as const
 
 /** Menu items of «Информация», in admin order. */
 export async function listInfoLinks(): Promise<InfoLink[]> {
   const payload = await getPayload({ config })
   const result = await payload.find({
     collection: 'info-pages',
-    where: publicPages,
+    where: PUBLISHED,
     sort: ['menuOrder', 'title'],
     limit: 50,
     depth: 0,
@@ -21,11 +20,14 @@ export async function listInfoLinks(): Promise<InfoLink[]> {
   return result.docs.map((page) => ({ href: `/info/${page.slug}`, label: page.title }))
 }
 
-export async function getInfoPage(slug: string): Promise<InfoPage | null> {
+/** Published page by slug; in draft mode (admin preview) the latest draft of any page. */
+export async function getInfoPage(slug: string, { draft = false } = {}): Promise<InfoPage | null> {
   const payload = await getPayload({ config })
+  const bySlug: Where = { slug: { equals: slug } }
   const result = await payload.find({
     collection: 'info-pages',
-    where: { and: [publicPages, { slug: { equals: slug } }] },
+    where: draft ? bySlug : { and: [PUBLISHED, bySlug] },
+    draft,
     limit: 1,
     depth: 0,
   })

@@ -1,7 +1,12 @@
-import type { Payload } from 'payload'
+import { randomUUID } from 'node:crypto'
+import type { Payload, PayloadRequest } from 'payload'
 
+import type { Product } from '../../payload-types'
 import { slugify } from '../slug'
 import type { CatalogSource, SourceProduct } from './types'
+
+/** Marks writes made by catalog sync — the only writer of source-owned product fields. */
+export const CATALOG_SYNC_CONTEXT = 'catalogSync'
 
 export type SyncReport = {
   source: string
@@ -12,7 +17,7 @@ export type SyncReport = {
   categoriesCreated: number
 }
 
-/** Fields owned by the source. Presentation fields and `published` are never touched. */
+/** Fields owned by the source. Presentation fields and publication status are never touched. */
 function commerceData(product: SourceProduct, categoryId: number | null) {
   return {
     title: product.name,
@@ -89,31 +94,67 @@ export async function syncCatalog(payload: Payload, source: CatalogSource): Prom
     })
 
     if (existing.docs[0]) {
-      await payload.update({ collection: 'products', id: existing.docs[0].id, data })
+      await updateSourceData(payload, existing.docs[0].id, data)
       updated += 1
     } else {
       await payload.create({
         collection: 'products',
-        data: { ...data, slug: await uniqueSlug(payload, product), published: false },
+        data: { ...data, slug: await uniqueSlug(payload, product), _status: 'draft' },
+        draft: true,
+        context: { [CATALOG_SYNC_CONTEXT]: true },
       })
       created += 1
     }
   }
 
   const sourceIds = products.map((p) => p.externalId)
-  const hidden = await payload.update({
+  const gone = await payload.find({
     collection: 'products',
     where: {
       and: [{ inSource: { equals: true } }, { externalId: { not_in: sourceIds } }],
     },
-    data: { inSource: false },
+    limit: 0,
+    depth: 0,
+    select: {},
   })
+  for (const doc of gone.docs) {
+    await updateSourceData(payload, doc.id, { inSource: false })
+  }
 
   return {
     source: source.name,
     created,
     updated,
-    hidden: hidden.docs.length,
+    hidden: gone.docs.length,
     categoriesCreated,
   }
+}
+
+/**
+ * Writes source-owned fields without changing what is published or pending.
+ * A plain update would rebuild the product from its latest version — so a pending
+ * admin draft would either get published by the sync or hide the product.
+ */
+export async function updateSourceData(
+  payload: Payload,
+  id: number,
+  data: Partial<Product>,
+  /** Pass to run inside a transaction (checkout reserving stock). */
+  req?: PayloadRequest,
+) {
+  const context = { [CATALOG_SYNC_CONTEXT]: true }
+  const [live, latest] = await Promise.all([
+    payload.findByID({ collection: 'products', id, depth: 0, draft: false, req }),
+    payload.findByID({ collection: 'products', id, depth: 0, draft: true, req }),
+  ])
+
+  if (live._status === 'published' && latest._status === 'draft') {
+    // Published product with a pending draft: refresh both, publish neither.
+    // A direct row write skips Payload's hooks, so array rows need their ids here.
+    const variants = data.variants?.map((v) => ({ ...v, id: v.id ?? randomUUID() }))
+    await payload.db.updateOne({ collection: 'products', id, data: variants ? { ...data, variants } : data, req })
+    await payload.update({ collection: 'products', id, data, draft: true, context, req })
+    return
+  }
+  await payload.update({ collection: 'products', id, data: { ...data, _status: live._status ?? 'draft' }, context, req })
 }

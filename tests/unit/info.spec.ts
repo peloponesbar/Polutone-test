@@ -21,7 +21,7 @@ describe('paragraphs', () => {
 })
 
 describe('info page defaults', () => {
-  it('has the six agreed pages with unique slugs and menu order', () => {
+  it('has the seven agreed pages with unique slugs and menu order', () => {
     expect(INFO_PAGE_DEFAULTS.map((p) => p.title)).toEqual([
       'Доставка',
       'Оплата',
@@ -29,9 +29,10 @@ describe('info page defaults', () => {
       'Таблица размеров',
       'Уход за вещами',
       'Контакты и о бренде',
+      'Политика конфиденциальности',
     ])
-    expect(new Set(INFO_PAGE_DEFAULTS.map((p) => p.slug)).size).toBe(6)
-    expect(new Set(INFO_PAGE_DEFAULTS.map((p) => p.menuOrder)).size).toBe(6)
+    expect(new Set(INFO_PAGE_DEFAULTS.map((p) => p.slug)).size).toBe(7)
+    expect(new Set(INFO_PAGE_DEFAULTS.map((p) => p.menuOrder)).size).toBe(7)
   })
 
   it('uses latin slugs and only the size page shows charts', () => {

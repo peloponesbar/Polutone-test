@@ -49,11 +49,14 @@ export async function listProducts(options: { categorySlug?: string; sort: SortV
   return result.docs
 }
 
-export async function getProductBySlug(slug: string): Promise<Product | null> {
+/** Visible product by slug; in draft mode (admin preview) the latest draft of any product. */
+export async function getProductBySlug(slug: string, { draft = false } = {}): Promise<Product | null> {
   const p = await payload()
+  const bySlug: Where = { slug: { equals: slug } }
   const result = await p.find({
     collection: 'products',
-    where: { and: [PUBLIC_PRODUCTS, { slug: { equals: slug } }] },
+    where: draft ? bySlug : { and: [PUBLIC_PRODUCTS, bySlug] },
+    draft,
     limit: 1,
     depth: 2,
   })
@@ -84,8 +87,8 @@ export async function listNewest(limit: number): Promise<Product[]> {
   return (await listProducts({ sort: 'new' })).slice(0, limit)
 }
 
-/** Home page settings with images and the featured product populated. */
-export async function getHome() {
+/** Home page settings with images and the featured product populated (latest draft in preview). */
+export async function getHome({ draft = false } = {}) {
   const p = await payload()
-  return p.findGlobal({ slug: 'home', depth: 2 })
+  return p.findGlobal({ slug: 'home', depth: 2, draft })
 }

@@ -1,5 +1,7 @@
 import type { GlobalConfig } from 'payload'
 
+import { DRAFT_VERSIONS, PUBLISHED, previewPathFor, previewUrl } from '../lib/preview'
+
 const image = (name: string, label: string, description?: string) =>
   ({
     name,
@@ -14,7 +16,14 @@ const image = (name: string, label: string, description?: string) =>
 export const Home: GlobalConfig = {
   slug: 'home',
   label: 'Главная',
-  access: { read: () => true },
+  // Visitors get the published version only; drafts are for signed-in admins.
+  access: { read: ({ req }) => (req.user ? true : PUBLISHED) },
+  versions: DRAFT_VERSIONS,
+  admin: {
+    group: 'Контент',
+    livePreview: { url: ({ req }) => previewUrl(req, previewPathFor('home')) },
+    preview: (_doc, { req }) => previewUrl(req, previewPathFor('home')),
+  },
   fields: [
     {
       type: 'tabs',

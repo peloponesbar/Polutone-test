@@ -1,0 +1,286 @@
+// POLUTONE brand for the Payload admin (DESIGN_SYSTEM.md §2–3, brandbook v3).
+// Payload builds its whole UI from these scales: base = milk → graphite,
+// success (statuses, toasts) = sage instead of Payload blue. Error/warning stay as is.
+
+@font-face {
+  font-family: 'Jura';
+  src: url('../../fonts/Jura-300.ttf') format('truetype');
+  font-weight: 300;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Jura';
+  src: url('../../fonts/Jura-400.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Onest';
+  src: url('../../fonts/Onest-400.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Onest';
+  src: url('../../fonts/Onest-500.ttf') format('truetype');
+  font-weight: 500;
+  font-display: swap;
+}
+
+:root {
+  // Milk at 0 → graphite at 850 and above: Payload paints primary buttons and strong
+  // text with elevation 800+, which must be graphite, not mid-grey.
+  --color-base-0: rgb(242, 239, 233);
+  --color-base-50: rgb(230, 227, 222);
+  --color-base-100: rgb(218, 216, 210);
+  --color-base-150: rgb(206, 204, 199);
+  --color-base-200: rgb(194, 193, 188);
+  --color-base-250: rgb(183, 181, 177);
+  --color-base-300: rgb(171, 169, 165);
+  --color-base-350: rgb(159, 158, 154);
+  --color-base-400: rgb(147, 146, 143);
+  --color-base-450: rgb(135, 135, 131);
+  --color-base-500: rgb(123, 123, 120);
+  --color-base-550: rgb(111, 112, 109);
+  --color-base-600: rgb(99, 100, 97);
+  --color-base-650: rgb(88, 88, 86);
+  --color-base-700: rgb(76, 77, 75);
+  --color-base-750: rgb(64, 65, 64);
+  --color-base-800: rgb(52, 54, 52);
+  --color-base-850: rgb(40, 42, 41);
+  --color-base-900: rgb(40, 42, 41);
+  --color-base-950: rgb(40, 42, 41);
+  --color-base-1000: rgb(40, 42, 41);
+  --color-success-50: rgb(250, 249, 246);
+  --color-success-100: rgb(240, 240, 236);
+  --color-success-150: rgb(230, 231, 226);
+  --color-success-200: rgb(219, 222, 216);
+  --color-success-250: rgb(209, 213, 206);
+  --color-success-300: rgb(199, 205, 195);
+  --color-success-350: rgb(189, 196, 185);
+  --color-success-400: rgb(178, 187, 175);
+  --color-success-450: rgb(168, 178, 165);
+  --color-success-500: rgb(158, 169, 155);
+  --color-success-550: rgb(146, 156, 144);
+  --color-success-600: rgb(134, 144, 132);
+  --color-success-650: rgb(123, 131, 121);
+  --color-success-700: rgb(111, 118, 109);
+  --color-success-750: rgb(99, 106, 98);
+  --color-success-800: rgb(87, 93, 87);
+  --color-success-850: rgb(75, 80, 75);
+  --color-success-900: rgb(64, 67, 64);
+  --color-success-950: rgb(52, 55, 52);
+
+  --font-body: 'Onest', system-ui, sans-serif;
+  --font-serif: 'Jura', 'Onest', sans-serif;
+
+  // Brand planes are square — no rounded corners.
+  --style-radius-s: 0px;
+  --style-radius-m: 0px;
+  --style-radius-l: 0px;
+}
+
+// Headings in the brand display face, like the site.
+h1,
+h2 {
+  font-family: 'Jura', 'Onest', sans-serif;
+  font-weight: 300;
+  letter-spacing: 0;
+}
+
+// Admin home summary (components/admin/Dashboard.tsx).
+.polutone-dash {
+  margin-bottom: 48px;
+
+  a:not(.btn) {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 32px;
+
+    h1 {
+      margin: 0;
+      letter-spacing: 0.12em;
+    }
+  }
+
+  &__site {
+    margin: 0;
+  }
+
+  &__title {
+    margin: 32px 0 12px;
+    font-size: 20px;
+  }
+
+  &__tiles {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background: var(--theme-elevation-150);
+    border: 1px solid var(--theme-elevation-150);
+
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    a {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      height: 100%;
+      padding: 20px;
+      background: var(--theme-elevation-0);
+      transition: background-color 150ms ease;
+
+      &:hover {
+        background: var(--theme-elevation-50);
+      }
+    }
+  }
+
+  // Onest, not Jura: Jura's dotted zero reads as a letter.
+  &__value {
+    font-size: 36px;
+    font-weight: 400;
+    line-height: 1;
+  }
+
+  &__edits {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--theme-elevation-150);
+
+    li {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 4px 16px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--theme-elevation-150);
+
+      @media (min-width: 768px) {
+        grid-template-columns: 1fr 160px 180px;
+      }
+    }
+
+    a {
+      font-weight: 500;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+
+    span,
+    time {
+      color: var(--theme-elevation-600);
+    }
+
+    time {
+      grid-column: 1 / -1;
+
+      @media (min-width: 768px) {
+        grid-column: auto;
+        text-align: right;
+      }
+    }
+  }
+}
+
+.polutone-site-link {
+  margin-top: 16px;
+}
+
+// Keyboard focus: graphite ring, as on the site.
+:focus-visible {
+  outline: 2px solid var(--theme-elevation-1000);
+  outline-offset: 2px;
+}
+
+// Order at a glance (components/admin/OrderSummary.tsx).
+.polutone-order {
+  margin-bottom: 32px;
+
+  &__facts {
+    display: grid;
+    gap: 16px;
+    margin: 0 0 24px;
+
+    @media (min-width: 768px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    dt {
+      margin-bottom: 4px;
+      color: var(--theme-elevation-600);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    dd {
+      margin: 0;
+    }
+
+    a {
+      color: inherit;
+    }
+  }
+
+  &__scroll {
+    overflow-x: auto;
+  }
+
+  &__muted {
+    display: block;
+    color: var(--theme-elevation-600);
+  }
+
+  &__items {
+    width: 100%;
+    border-collapse: collapse;
+
+    th,
+    td {
+      padding: 10px 8px 10px 0;
+      border-bottom: 1px solid var(--theme-elevation-150);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    thead th {
+      color: var(--theme-elevation-600);
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    td:nth-child(n + 2),
+    th:nth-child(n + 2),
+    tfoot td {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    tfoot th {
+      font-weight: 400;
+      text-align: right;
+    }
+
+    tfoot tr:last-child th,
+    tfoot tr:last-child td {
+      font-weight: 500;
+      border-bottom: 0;
+    }
+  }
+}

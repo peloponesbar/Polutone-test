@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 
 import { Price } from '@/components/site/Price'
@@ -12,6 +13,8 @@ import {
   sizeOptions,
   type PickerVariant,
 } from '@/lib/catalog/variants'
+import { colorHex, textOnSwatch } from '@/lib/catalog/colors'
+import { cart } from '@/lib/cart/store'
 
 import { openDetails } from './openDetails'
 
@@ -26,7 +29,7 @@ type Props = {
   modelNote?: string | null
 }
 
-/** Color → size selection with live availability and price; add-to-cart arrives in phase 2. */
+/** Color → size selection with live availability and price, and «В корзину». */
 export function VariantPicker({
   variants,
   color,
@@ -39,6 +42,7 @@ export function VariantPicker({
   const colors = colorsOf(variants)
   const [size, setSize] = useState<string | null>(() => defaultSize(variants, color))
   const [notice, setNotice] = useState<string | null>(null)
+  const [added, setAdded] = useState(false)
 
   const sizes = sizeOptions(variants, color)
   const selected = findVariant(variants, color, size)
@@ -48,16 +52,21 @@ export function VariantPicker({
   function chooseColor(next: string) {
     onColorChange(next)
     setNotice(null)
+    setAdded(false)
     // Keep the size if it's still available in the new color.
     if (size && !sizeOptions(variants, next).some((o) => o.size === size && o.available)) setSize(null)
   }
 
   function addToCart() {
     if (!selected) {
+      setAdded(false)
       setNotice('Выберите, пожалуйста, размер.')
       return
     }
-    setNotice('Корзина появится на следующем этапе работы над сайтом.')
+    const before = cart.qtyOf(selected.externalId)
+    const after = cart.add(selected.externalId, selected.available)
+    setAdded(true)
+    setNotice(after > before ? 'Добавлено в корзину.' : 'В корзине уже всё, что есть в наличии.')
   }
 
   return (
@@ -75,17 +84,28 @@ export function VariantPicker({
             Цвет<span className="sr-only">: {color}</span>
           </legend>
           <div className="flex flex-wrap gap-2">
-            {colors.map((c) => (
-              <button
-                key={c}
-                type="button"
-                aria-pressed={c === color}
-                onClick={() => chooseColor(c)}
-                className={`${tab} ${c === color ? tabOn : tabOff}`}
-              >
-                {c}
-              </button>
-            ))}
+            {colors.map((c) => {
+              const hex = colorHex(c)
+              const on = c === color
+              // Known colors: the button is filled with the garment color; the chosen one gets a graphite frame.
+              const look = hex
+                ? `border-primary/20 outline-2 outline-offset-2 transition-[outline-color] duration-300 ${on ? 'outline-primary' : 'outline-transparent hover:outline-primary/40'} ${textOnSwatch(hex) === 'light' ? 'text-background' : 'text-primary'}`
+                : on
+                  ? tabOn
+                  : tabOff
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => chooseColor(c)}
+                  className={`${tab} ${look}`}
+                  style={hex ? { backgroundColor: hex } : undefined}
+                >
+                  {c}
+                </button>
+              )
+            })}
           </div>
         </fieldset>
       ) : colors[0] ? (
@@ -125,6 +145,7 @@ export function VariantPicker({
                   if (!option.available) return
                   setSize(option.size)
                   setNotice(null)
+                  setAdded(false)
                 }}
                 className={`${tab} min-w-14 ${!option.available ? tabDisabled : checked ? tabOn : tabOff}`}
               >
@@ -149,6 +170,14 @@ export function VariantPicker({
         </button>
         <p role="status" className="min-h-[22px] font-sans text-caption tracking-body text-primary/80">
           {notice}
+          {added ? (
+            <>
+              {' '}
+              <Link href="/cart" className={textLink}>
+                Перейти в корзину
+              </Link>
+            </>
+          ) : null}
         </p>
       </div>
     </div>

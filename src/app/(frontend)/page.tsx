@@ -1,3 +1,4 @@
+import { draftMode } from 'next/headers'
 import Link from 'next/link'
 
 import { asImage, MediaImage } from '@/components/site/MediaImage'
@@ -19,7 +20,11 @@ const paragraphs = (text?: string | null) =>
     .filter(Boolean)
 
 export default async function HomePage() {
-  const [home, categories, newest] = await Promise.all([getHome(), listCategories(), listNewest(4)])
+  const [home, categories, newest] = await Promise.all([
+    getHome({ draft: (await draftMode()).isEnabled }),
+    listCategories(),
+    listNewest(4),
+  ])
 
   const heroImage = asImage(home.hero?.image)
   const aboutImage = asImage(home.about?.image)

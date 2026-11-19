@@ -1,7 +1,9 @@
 import Link from 'next/link'
 
+import { Logo } from '@/components/brand/Logo'
 import { listInfoLinks } from '@/lib/info'
 
+import { CartLink } from './CartLink'
 import { DesktopNav, MobileMenu } from './HeaderNav'
 import { container, focusRing } from './ui'
 
@@ -21,10 +23,10 @@ export async function SiteHeader() {
         >
           <DesktopNav links={infoLinks} />
           <Link href="/" aria-label="POLUTONE — на главную" className={`inline-flex min-h-[44px] items-center ${focusRing}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element -- brand SVG at fixed width */}
-            <img src="/logos/POLUTONE_sage_light.svg" alt="" width={180} height={40} />
+            <Logo width={180} />
           </Link>
-          <div className="flex justify-end">
+          <div className="flex items-center justify-end gap-2">
+            <CartLink />
             <MobileMenu links={infoLinks} />
           </div>
         </div>

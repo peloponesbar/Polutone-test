@@ -13,7 +13,10 @@ const buttonBase = `inline-flex min-h-[44px] items-center justify-center px-6 fo
 
 export const buttonPrimary = `${buttonBase} bg-primary text-background hover:bg-primary/90 disabled:bg-primary/60`
 
-export const buttonSecondary = `${buttonBase} border border-primary/20 text-primary hover:bg-primary hover:text-background`
+/** Hover for outlined controls (secondary buttons, «Меню», cart, steppers): graphite plane, milk text. */
+export const hoverInvert = 'transition-colors duration-300 hover:border-primary hover:bg-primary hover:text-background'
+
+export const buttonSecondary = `${buttonBase} border border-primary/20 text-primary ${hoverInvert}`
 
 /** Toggle chip: category tabs, color and size choices. */
 export const tab = `inline-flex min-h-[44px] items-center justify-center border px-4 font-sans text-label font-medium tracking-body transition-colors duration-300 ${focusRing}`

@@ -51,7 +51,7 @@ describe('syncCatalog', () => {
 
     expect(report).toEqual({ source: 'test', created: 2, updated: 0, hidden: 0, categoriesCreated: 2 })
     const a = await findByExternalId('a')
-    expect(a.published).toBe(false)
+    expect(a._status).toBe('draft')
     expect(a.inSource).toBe(true)
     expect(a.inStock).toBe(true)
     expect(a.slug).toBe('zhaket-pryamoy')
@@ -70,7 +70,7 @@ describe('syncCatalog', () => {
     await payload.update({
       collection: 'products',
       id: created.id,
-      data: { published: true, description: 'Свободная посадка.' },
+      data: { _status: 'published', description: 'Свободная посадка.' },
     })
 
     const report = await syncCatalog(
@@ -91,7 +91,7 @@ describe('syncCatalog', () => {
     expect(updated.price).toBe(9000)
     expect(updated.inStock).toBe(false)
     expect(updated.slug).toBe('zhaket-pryamoy') // URL stays stable after a rename
-    expect(updated.published).toBe(true)
+    expect(updated._status).toBe('published')
     expect(updated.description).toBe('Свободная посадка.')
   })
 
@@ -107,6 +107,79 @@ describe('syncCatalog', () => {
   })
 })
 
+describe('drafts and catalog sync', () => {
+  beforeAll(async () => {
+    payload = await getPayload({ config })
+  })
+
+  beforeEach(async () => {
+    await payload.delete({ collection: 'products', where: { id: { exists: true } } })
+    await payload.delete({ collection: 'categories', where: { id: { exists: true } } })
+  })
+
+  async function publishedWithPendingDraft() {
+    await syncCatalog(payload, sourceOf([product('a')]))
+    const { id } = await findByExternalId('a')
+    await payload.update({ collection: 'products', id, data: { _status: 'published', description: 'На сайте' } })
+    await payload.update({ collection: 'products', id, draft: true, data: { description: 'Черновик' } })
+    return id
+  }
+
+  const live = (id: number) => payload.findByID({ collection: 'products', id, depth: 0 })
+  const latest = (id: number) => payload.findByID({ collection: 'products', id, depth: 0, draft: true })
+
+  it('a draft save leaves the published product unchanged', async () => {
+    const id = await publishedWithPendingDraft()
+    expect((await live(id)).description).toBe('На сайте')
+    expect((await latest(id)).description).toBe('Черновик')
+  })
+
+  it('sync refreshes MoySklad data in both versions without publishing the pending draft', async () => {
+    const id = await publishedWithPendingDraft()
+    await syncCatalog(payload, sourceOf([product('a', { price: 7000 })]))
+
+    const site = await live(id)
+    expect(site._status).toBe('published')
+    expect(site.description).toBe('На сайте')
+    expect(site.price).toBe(7000)
+
+    const draft = await latest(id)
+    expect(draft._status).toBe('draft')
+    expect(draft.description).toBe('Черновик')
+    expect(draft.price).toBe(7000)
+
+    // Publishing the draft later carries the fresh price, not the one from before the sync.
+    await payload.update({ collection: 'products', id, data: { _status: 'published' } })
+    expect(await live(id)).toMatchObject({ description: 'Черновик', price: 7000, _status: 'published' })
+  })
+
+  it('hiding a product removed from MoySklad keeps its pending draft unpublished', async () => {
+    const id = await publishedWithPendingDraft()
+    await syncCatalog(payload, sourceOf([]))
+    expect(await live(id)).toMatchObject({ inSource: false, description: 'На сайте', _status: 'published' })
+    expect(await latest(id)).toMatchObject({ inSource: false, description: 'Черновик', _status: 'draft' })
+  })
+
+  it('admin saves cannot change MoySklad fields', async () => {
+    const id = await publishedWithPendingDraft()
+    await payload.update({ collection: 'products', id, draft: true, data: { price: 1, title: 'Подмена' } })
+    await payload.update({ collection: 'products', id, data: { _status: 'published', price: 2 } })
+    expect(await live(id)).toMatchObject({ price: 10000, title: 'Жакет прямой' })
+  })
+
+  it('visitors never see a draft', async () => {
+    const id = await publishedWithPendingDraft()
+    const asVisitor = await payload.find({
+      collection: 'products',
+      where: { id: { equals: id } },
+      draft: true,
+      overrideAccess: false,
+      depth: 0,
+    })
+    expect(asVisitor.docs.map((d) => d.description)).not.toContain('Черновик')
+  })
+})
+
 describe('product access', () => {
   beforeAll(async () => {
     payload = await getPayload({ config })
@@ -118,7 +191,7 @@ describe('product access', () => {
     await payload.update({
       collection: 'products',
       where: { externalId: { in: ['live', 'gone'] } },
-      data: { published: true },
+      data: { _status: 'published' },
     })
     await syncCatalog(payload, sourceOf([product('draft'), product('live')]))
 

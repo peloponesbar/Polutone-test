@@ -1,26 +1,27 @@
 import type { CollectionConfig } from 'payload'
 
+import { DRAFT_VERSIONS, PUBLISHED, previewPathFor, previewUrl } from '../lib/preview'
+
 /** Pages of the «Информация» menu: delivery, payment, returns, sizes, care, contacts. */
 export const InfoPages: CollectionConfig = {
   slug: 'info-pages',
   labels: { singular: 'Страница «Информация»', plural: 'Информация' },
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'slug', 'menuOrder', 'published'],
+    group: 'Контент',
+    defaultColumns: ['title', 'slug', 'menuOrder', '_status'],
     description: 'Пункты выпадающего меню «Информация» — в порядке поля «Порядок в меню».',
+    livePreview: {
+      url: ({ data, req }) => previewUrl(req, previewPathFor('info-pages', data?.slug)),
+    },
+    preview: (doc, { req }) => previewUrl(req, previewPathFor('info-pages', doc.slug)),
   },
   defaultSort: 'menuOrder',
+  versions: DRAFT_VERSIONS,
   access: {
-    read: ({ req }) => (req.user ? true : { published: { equals: true } }),
+    read: ({ req }) => (req.user ? true : PUBLISHED),
   },
   fields: [
-    {
-      name: 'published',
-      label: 'Показывать на сайте',
-      type: 'checkbox',
-      defaultValue: true,
-      admin: { position: 'sidebar' },
-    },
     {
       name: 'menuOrder',
       label: 'Порядок в меню',
