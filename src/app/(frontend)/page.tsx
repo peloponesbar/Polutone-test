@@ -6,9 +6,14 @@ import { Price } from '@/components/site/Price'
 import { ProductCard } from '@/components/site/ProductCard'
 import { SectionHeader } from '@/components/site/SectionHeader'
 import { buttonPrimary, buttonSecondary, container, focusRing, label } from '@/components/site/ui'
+import { JsonLd } from '@/components/site/JsonLd'
+import { organizationSchema, websiteSchema } from '@/lib/schema'
+import { getSiteSettings } from '@/lib/settings'
+import { siteUrl } from '@/lib/site-url'
 import { getHome, listCategories, listNewest } from '@/lib/catalog/queries'
 import type { Product } from '@/payload-types'
 
+export const metadata = { alternates: { canonical: '/' } }
 export const dynamic = 'force-dynamic'
 
 const section = 'border-t border-primary/10 py-16 md:py-24'
@@ -20,11 +25,13 @@ const paragraphs = (text?: string | null) =>
     .filter(Boolean)
 
 export default async function HomePage() {
-  const [home, categories, newest] = await Promise.all([
+  const [home, categories, newest, settings] = await Promise.all([
     getHome({ draft: (await draftMode()).isEnabled }),
     listCategories(),
     listNewest(4),
+    getSiteSettings(),
   ])
+  const base = siteUrl()
 
   const heroImage = asImage(home.hero?.image)
   const aboutImage = asImage(home.about?.image)
@@ -33,6 +40,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <JsonLd data={[organizationSchema(base, settings.contacts), websiteSchema(base)]} />
       {/* 1. Hero: photo first, text below it — normal flow, so they never overlap at any width */}
       <section aria-labelledby="hero-title">
         {heroImage ? (

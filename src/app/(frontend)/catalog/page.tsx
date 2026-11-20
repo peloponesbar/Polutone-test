@@ -7,11 +7,39 @@ import { SortSelect } from '@/components/site/SortSelect'
 import { container, tab, tabOff, tabOn, textLink } from '@/components/site/ui'
 import { listCategories, listProducts, parseSort, SORT_OPTIONS } from '@/lib/catalog/queries'
 import { pluralize } from '@/lib/plural'
+import { breadcrumbSchema } from '@/lib/schema'
+import { catalogCanonical, pageOpenGraph, settingsOgImage } from '@/lib/seo'
+import { getSiteSettings } from '@/lib/settings'
+import { asImage, toImageData } from '@/components/site/MediaImage'
+import { siteUrl } from '@/lib/site-url'
+import { JsonLd } from '@/components/site/JsonLd'
 
-export const metadata: Metadata = { title: 'Каталог — POLUTONE' }
 export const dynamic = 'force-dynamic'
 
 type Props = { searchParams: Promise<{ category?: string; sort?: string }> }
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const { category } = await searchParams
+  const known = category ? (await listCategories()).find((c) => c.slug === category) : undefined
+  const { seo } = await getSiteSettings()
+  const title = known ? `${known.name} — Каталог` : 'Каталог'
+  const description = known
+    ? `${known.name} POLUTONE: свободный крой, унисекс, спокойные цвета. Доставка по России.`
+    : 'Каталог POLUTONE: худи, футболки и брюки свободного кроя, унисекс, спокойные цвета. Доставка по России.'
+  const path = catalogCanonical(known?.slug)
+  const photo = asImage(known?.image)
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: pageOpenGraph({
+      title: `${title} — POLUTONE`,
+      description,
+      path,
+      image: photo ? toImageData(photo) : settingsOgImage(seo.image),
+    }),
+  }
+}
 
 export default async function CatalogPage({ searchParams }: Props) {
   const params = await searchParams
@@ -32,6 +60,9 @@ export default async function CatalogPage({ searchParams }: Props) {
 
   return (
     <div className={`${container} pb-16 md:pb-24`}>
+      <JsonLd
+        data={breadcrumbSchema(siteUrl(), [{ label: 'Главная', path: '/' }, { label: 'Каталог' }])}
+      />
       <Breadcrumbs items={[{ href: '/', label: 'Главная' }, { label: 'Каталог' }]} />
 
       <div className="flex flex-col gap-4 pt-6 pb-10">

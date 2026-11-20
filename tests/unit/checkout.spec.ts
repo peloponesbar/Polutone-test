@@ -47,6 +47,8 @@ describe('validateCheckout', () => {
         deliveryService: 'cdek',
         deliveryMethod: 'courier',
         city: 'Казань',
+        cityCode: null,
+        pickupPoint: null,
         address: 'ул. Баумана, 1, кв. 5',
         paymentMethod: 'online',
         comment: '',
@@ -62,9 +64,30 @@ describe('validateCheckout', () => {
 
   it('Почта России delivers to the post office only', () => {
     expect(methodsOf('post')).toEqual(['pickup'])
-    const result = validateCheckout({ ...valid, deliveryService: 'post', deliveryMethod: 'courier' })
-    expect(result.ok).toBe(false)
-    if (!result.ok) expect(result.errors.deliveryMethod).toBeDefined()
+  })
+
+  it('offers only СДЭК at checkout until phase 4', () => {
+    for (const service of ['post', 'yandex']) {
+      const result = validateCheckout({ ...valid, deliveryService: service })
+      expect(result.ok).toBe(false)
+      if (!result.ok) expect(result.errors.deliveryService).toBeDefined()
+    }
+  })
+
+  it('with delivery on the site: a city from the list and a pickup point are required', () => {
+    const pickup = { ...valid, deliveryMethod: 'pickup', address: '' }
+    const missing = validateCheckout(pickup, { withCarrier: true })
+    expect(missing.ok).toBe(false)
+    if (!missing.ok) expect(Object.keys(missing.errors).sort()).toEqual(['city', 'pickupPoint'])
+
+    const chosen = validateCheckout({ ...pickup, cityCode: '90006', pickupPoint: 'TEST90006-1' }, { withCarrier: true })
+    expect(chosen).toMatchObject({ ok: true, data: { cityCode: 90006, pickupPoint: 'TEST90006-1' } })
+
+    const courier = validateCheckout({ ...valid, cityCode: '90006', pickupPoint: 'TEST90006-1' }, { withCarrier: true })
+    expect(courier).toMatchObject({ ok: true, data: { cityCode: 90006, pickupPoint: null, address: 'ул. Баумана, 1, кв. 5' } })
+
+    const badPoint = validateCheckout({ ...pickup, cityCode: '90006', pickupPoint: '"><script>' }, { withCarrier: true })
+    expect(badPoint.ok).toBe(false)
   })
 
   it('rejects unknown choices and oversized input', () => {

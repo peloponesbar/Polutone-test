@@ -97,9 +97,11 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     home: Home;
+    'site-settings': SiteSetting;
   };
   globalsSelect: {
     home: HomeSelect<false> | HomeSelect<true>;
+    'site-settings': SiteSettingsSelect<false> | SiteSettingsSelect<true>;
   };
   locale: null;
   widgets: {
@@ -258,6 +260,8 @@ export interface Media {
    * Как в МойСкладе (например, «Шалфей»). На карточке товара фото показываются для выбранного цвета. Пусто — для всех цветов.
    */
   color?: string | null;
+  prefix?: string | null;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -288,6 +292,10 @@ export interface Category {
    * Меньше — левее во вкладках каталога.
    */
   order?: number | null;
+  /**
+   * Для расчёта доставки СДЭК. Позже будет приходить из МойСклада.
+   */
+  itemWeight?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -307,6 +315,19 @@ export interface Order {
    * Пусто — заказ не передан в МойСклад: создайте его там вручную.
    */
   moyskladId?: string | null;
+  paidAt?: string | null;
+  /**
+   * Последний созданный платёж по заказу.
+   */
+  paymentId?: string | null;
+  paymentAttempts?: number | null;
+  trackNumber?: string | null;
+  shipmentStatus?: string | null;
+  /**
+   * Пусто у оплаченного заказа — он не передан в СДЭК.
+   */
+  shipmentId?: string | null;
+  cancelReason?: ('unpaid' | 'shop') | null;
   /**
    * Покупатель её не видит.
    */
@@ -320,6 +341,7 @@ export interface Order {
     price: number;
     qty: number;
     lineTotal: number;
+    weight?: number | null;
     id?: string | null;
   }[];
   itemsTotal: number;
@@ -334,6 +356,10 @@ export interface Order {
   deliveryService: 'cdek' | 'yandex' | 'post';
   deliveryMethod: 'pickup' | 'courier';
   city: string;
+  cityCode?: number | null;
+  pickupPoint?: string | null;
+  deliveryDays?: string | null;
+  tariffCode?: number | null;
   address: string;
   paymentMethod: 'online';
   comment?: string | null;
@@ -373,6 +399,10 @@ export interface InfoPage {
    * Для страницы «Таблица размеров»: под текстом — обмеры каждой модели из МойСклада.
    */
   showSizeCharts?: boolean | null;
+  /**
+   * Для страницы «Контакты»: под текстом — блок «Связь» из «Настроек сайта».
+   */
+  showContacts?: boolean | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
@@ -597,6 +627,7 @@ export interface CategoriesSelect<T extends boolean = true> {
   slug?: T;
   image?: T;
   order?: T;
+  itemWeight?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -610,6 +641,13 @@ export interface OrdersSelect<T extends boolean = true> {
   status?: T;
   token?: T;
   moyskladId?: T;
+  paidAt?: T;
+  paymentId?: T;
+  paymentAttempts?: T;
+  trackNumber?: T;
+  shipmentStatus?: T;
+  shipmentId?: T;
+  cancelReason?: T;
   note?: T;
   items?:
     | T
@@ -622,6 +660,7 @@ export interface OrdersSelect<T extends boolean = true> {
         price?: T;
         qty?: T;
         lineTotal?: T;
+        weight?: T;
         id?: T;
       };
   itemsTotal?: T;
@@ -633,6 +672,10 @@ export interface OrdersSelect<T extends boolean = true> {
   deliveryService?: T;
   deliveryMethod?: T;
   city?: T;
+  cityCode?: T;
+  pickupPoint?: T;
+  deliveryDays?: T;
+  tariffCode?: T;
   address?: T;
   paymentMethod?: T;
   comment?: T;
@@ -657,6 +700,7 @@ export interface InfoPagesSelect<T extends boolean = true> {
         id?: T;
       };
   showSizeCharts?: T;
+  showContacts?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
@@ -668,6 +712,8 @@ export interface InfoPagesSelect<T extends boolean = true> {
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   color?: T;
+  prefix?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -781,6 +827,99 @@ export interface Home {
   createdAt?: string | null;
 }
 /**
+ * Контакты, реквизиты, подвал и описание для поисковиков. Изменения видны на сайте сразу после сохранения.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings".
+ */
+export interface SiteSetting {
+  id: number;
+  contacts?: {
+    /**
+     * Ник или ссылка: @polutone, t.me/polutone.
+     */
+    telegram?: string | null;
+    /**
+     * Адрес страницы: polutone или vk.com/polutone.
+     */
+    vk?: string | null;
+    /**
+     * Полная ссылка на профиль магазина.
+     */
+    avito?: string | null;
+    email?: string | null;
+    /**
+     * В любом виде: +7 900 123-45-67, 8 800 …
+     */
+    phone?: string | null;
+    /**
+     * Например: «Ежедневно с 10:00 до 20:00 по Москве».
+     */
+    hours?: string | null;
+  };
+  legal?: {
+    /**
+     * Например: «ИП Иванов Иван Иванович».
+     */
+    seller?: string | null;
+    inn?: string | null;
+    ogrn?: string | null;
+    /**
+     * Необязательно.
+     */
+    address?: string | null;
+  };
+  announcement?: {
+    enabled?: boolean | null;
+    /**
+     * Коротко, до 120 знаков: «Бесплатная доставка от 5 000 ₽».
+     */
+    text?: string | null;
+    /**
+     * Необязательно. Страница сайта (/info/dostavka) или полный адрес.
+     */
+    link?: string | null;
+  };
+  delivery?: {
+    /**
+     * Например, код Красной Поляны в базе СДЭК.
+     */
+    originCity?: number | null;
+    /**
+     * Пункт, куда вы относите посылки, например «SOC12».
+     */
+    shipmentPoint?: string | null;
+    /**
+     * Заполняется само после сохранения: город и адрес пункта сдачи.
+     */
+    originLabel?: string | null;
+    /**
+     * Сумма товаров, от которой доставку оплачивает магазин. Пусто — доставка всегда платная.
+     */
+    freeFrom?: number | null;
+    boxLength?: number | null;
+    boxWidth?: number | null;
+    boxHeight?: number | null;
+    packagingWeight?: number | null;
+  };
+  footer?: {
+    tagline?: string | null;
+  };
+  seo?: {
+    title?: string | null;
+    /**
+     * Одна-две фразы, до 160 знаков — длиннее поиск обрежет.
+     */
+    description?: string | null;
+    /**
+     * Горизонтальная, лучше 1200 × 630 px. Пусто — превью без картинки.
+     */
+    image?: (number | null) | Media;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "home_select".
  */
@@ -807,6 +946,64 @@ export interface HomeSelect<T extends boolean = true> {
         image?: T;
       };
   _status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "site-settings_select".
+ */
+export interface SiteSettingsSelect<T extends boolean = true> {
+  contacts?:
+    | T
+    | {
+        telegram?: T;
+        vk?: T;
+        avito?: T;
+        email?: T;
+        phone?: T;
+        hours?: T;
+      };
+  legal?:
+    | T
+    | {
+        seller?: T;
+        inn?: T;
+        ogrn?: T;
+        address?: T;
+      };
+  announcement?:
+    | T
+    | {
+        enabled?: T;
+        text?: T;
+        link?: T;
+      };
+  delivery?:
+    | T
+    | {
+        originCity?: T;
+        shipmentPoint?: T;
+        originLabel?: T;
+        freeFrom?: T;
+        boxLength?: T;
+        boxWidth?: T;
+        boxHeight?: T;
+        packagingWeight?: T;
+      };
+  footer?:
+    | T
+    | {
+        tagline?: T;
+      };
+  seo?:
+    | T
+    | {
+        title?: T;
+        description?: T;
+        image?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
   globalType?: T;

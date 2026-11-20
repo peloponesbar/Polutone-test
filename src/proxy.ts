@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
-import { isAuthorized, SITE_REALM } from './lib/site-password'
+import { isAuthorized, isPasswordFree, SITE_REALM } from './lib/site-password'
 
 /** Closes the whole site with a password when SITE_PASSWORD is set (test deployments). */
 export function proxy(request: NextRequest) {
-  if (isAuthorized(request.headers.get('authorization'), process.env.SITE_PASSWORD)) {
+  if (isPasswordFree(request.nextUrl.pathname) || isAuthorized(request.headers.get('authorization'), process.env.SITE_PASSWORD)) {
     return NextResponse.next()
   }
   return new NextResponse('Требуется пароль', {

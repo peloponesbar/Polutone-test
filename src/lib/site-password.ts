@@ -4,6 +4,11 @@
  */
 export const SITE_REALM = 'POLUTONE test'
 
+/** Machine-to-machine paths that stay open: ЮKassa's notices and the scheduler can't type a password. */
+export const PASSWORD_FREE_PATHS = ['/api/payments/yookassa', '/api/cron/expire-orders', '/api/delivery/cdek']
+
+export const isPasswordFree = (pathname: string) => PASSWORD_FREE_PATHS.includes(pathname.replace(/\/+$/, ''))
+
 /** Constant-time string comparison, so response timing doesn't leak the password. */
 function safeEqual(a: string, b: string): boolean {
   let diff = a.length ^ b.length

@@ -6,6 +6,8 @@ import { INFO_PAGE_DEFAULTS } from './info-defaults'
 
 /** Category tab order for the test catalog (in production it is set in the admin). */
 const TEST_CATEGORY_ORDER = ['Худи', 'Футболки', 'Брюки']
+/** Weight of one item per test category, grams (for delivery prices). */
+const TEST_CATEGORY_WEIGHT: Record<string, number> = { Худи: 700, Футболки: 250, Брюки: 500 }
 
 /** Creates missing «Информация» pages with draft texts; existing pages are never changed. */
 export async function seedInfoPages(payload: Payload): Promise<{ created: number }> {
@@ -21,7 +23,7 @@ export async function seedInfoPages(payload: Payload): Promise<{ created: number
 
 async function orderTestCategories(payload: Payload) {
   for (const [index, name] of TEST_CATEGORY_ORDER.entries()) {
-    await payload.update({ collection: 'categories', where: { name: { equals: name } }, data: { order: (index + 1) * 10 } })
+    await payload.update({ collection: 'categories', where: { name: { equals: name } }, data: { order: (index + 1) * 10, itemWeight: TEST_CATEGORY_WEIGHT[name] } })
   }
 }
 

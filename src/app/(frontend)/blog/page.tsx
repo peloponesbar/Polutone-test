@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Breadcrumbs } from '@/components/site/Breadcrumbs'
 import { buttonSecondary, container } from '@/components/site/ui'
 
-export const metadata: Metadata = { title: 'Блог — POLUTONE' }
+export const metadata: Metadata = { title: 'Блог', robots: { index: false } }
 // Dynamic so the header menu (from the admin) is always current.
 export const dynamic = 'force-dynamic'
 

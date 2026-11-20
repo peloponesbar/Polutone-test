@@ -15,6 +15,10 @@ export interface OrderSink {
   readonly name: string
   /** Creates the order in the source; returns its id there. */
   createOrder(order: OrderForSource): Promise<string>
+  /** Records the payment on the order in the source (incoming payment). */
+  orderPaid(sourceId: string, amount: number): Promise<void>
+  /** Cancels the order in the source and releases its reserve. */
+  cancelOrder(sourceId: string): Promise<void>
 }
 
 /** Stand-in until the MoySklad adapter exists: logs the order and returns a fake id. */
@@ -29,6 +33,14 @@ export class MockOrderSink implements OrderSink {
       items: order.items,
     })
     return `mock-${order.number}`
+  }
+
+  async orderPaid(sourceId: string, amount: number): Promise<void> {
+    this.payload.logger.info({ msg: 'MoySklad (mock): incoming payment', sourceId, amount })
+  }
+
+  async cancelOrder(sourceId: string): Promise<void> {
+    this.payload.logger.info({ msg: 'MoySklad (mock): order cancelled, reserve released', sourceId })
   }
 }
 

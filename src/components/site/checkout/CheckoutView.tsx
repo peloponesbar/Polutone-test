@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 
 import { submitOrder } from '@/app/(frontend)/checkout/actions'
+import { type DeliveryQuoteView, getDeliveryQuote } from '@/app/(frontend)/checkout/delivery-actions'
 import { RemovedNote } from '@/components/site/cart/CartView'
 import { itemsLabel } from '@/components/site/cart/format'
 import { LineThumb } from '@/components/site/cart/LineThumb'
@@ -14,6 +15,7 @@ import { cart } from '@/lib/cart/store'
 import { formatPrice } from '@/lib/format'
 import type { CheckoutErrors, CheckoutField } from '@/lib/orders/checkout'
 import {
+  CHECKOUT_SERVICES,
   DELIVERY_METHODS,
   DELIVERY_SERVICES,
   type DeliveryMethod,
@@ -21,7 +23,10 @@ import {
   labelOf,
   methodsOf,
   PAYMENT_METHODS,
+  PAYMENT_HOLD_MINUTES,
 } from '@/lib/orders/options'
+
+import { DeliveryPicker, type DeliveryTarget } from './DeliveryPicker'
 
 const note = 'font-sans text-caption tracking-body text-primary/80'
 const input = `w-full border bg-background px-4 font-sans text-body-m tracking-body text-primary placeholder:text-primary/50 ${focusRing}`
@@ -34,6 +39,7 @@ const FIELD_ORDER: CheckoutField[] = [
   'deliveryService',
   'deliveryMethod',
   'city',
+  'pickupPoint',
   'address',
   'paymentMethod',
   'comment',
@@ -46,21 +52,57 @@ const ADDRESS_LABEL: Record<DeliveryMethod | 'post', { label: string; hint: stri
   post: { label: 'Адрес отделения или ваш адрес с индексом', hint: 'Например, 420111, ул. Баумана, 1, кв. 5.' },
 }
 
-export function CheckoutView() {
+const SERVICES = DELIVERY_SERVICES.filter((s) => CHECKOUT_SERVICES.includes(s.value))
+
+export function CheckoutView({
+  paymentsOn,
+  deliveryOn,
+  mapsKey,
+  freeFrom,
+}: {
+  paymentsOn: boolean
+  /** Delivery is calculated on the site (СДЭК or its local stand-in). */
+  deliveryOn: boolean
+  mapsKey: string | null
+  freeFrom: number | null
+}) {
   const router = useRouter()
   const { hydrated, lines, result, loading, removedNote, reconcile } = useCartQuote()
-  const [service, setService] = useState<DeliveryService>('cdek')
+  const [service, setService] = useState<DeliveryService>(SERVICES[0].value)
   const [method, setMethod] = useState<DeliveryMethod>('pickup')
   const [errors, setErrors] = useState<CheckoutErrors>({})
   const [notice, setNotice] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
-  const [placed, setPlaced] = useState(false)
+  const [placed, setPlaced] = useState<string | null>(null)
+  const [target, setTarget] = useState<DeliveryTarget>({ city: null, point: null })
+  const [quoteRound, setQuoteRound] = useState(0)
+  const [quoted, setQuoted] = useState<{ request: string; view: DeliveryQuoteView } | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
+  const itemsTotal = result?.ok ? result.cart.total : null
+
+  // Delivery price for the chosen city and point, from the server; asked again when the cart
+  // changes. A stale answer (for another choice) is never shown: it is tied to its request.
+  const quoteKey =
+    deliveryOn && target.city && (method === 'courier' || target.point) ? `${target.city.code}|${method}|${method === 'pickup' ? (target.point?.code ?? '') : ''}` : null
+  const request = quoteKey && itemsTotal !== null ? `${quoteKey}|${itemsTotal}|${quoteRound}` : null
+  const quote = quoted && quoted.request === request ? quoted.view : null
+  useEffect(() => {
+    if (!request) return
+    let cancelled = false
+    const [cityCode, m, pickupPoint] = request.split('|')
+    getDeliveryQuote({ lines, method: m, cityCode: Number(cityCode), pickupPoint })
+      .then((view) => !cancelled && setQuoted({ request, view }))
+      .catch(() => !cancelled && setQuoted({ request, view: { ok: false, error: 'Не удалось рассчитать доставку. Проверьте, пожалуйста, интернет.' } }))
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the cart's lines are reflected in itemsTotal
+  }, [request])
   const noticeRef = useRef<HTMLDivElement>(null)
 
   const placeholder = (text: string) => <p className="py-16 font-sans text-body-m tracking-body text-primary/70">{text}</p>
   if (!hydrated) return placeholder('Загружаем корзину…')
-  if (placed) return placeholder('Заказ оформлен, открываем его страницу…')
+  if (placed) return placeholder(placed)
 
   if (lines.length === 0) {
     return (
@@ -77,6 +119,9 @@ export function CheckoutView() {
   if (!result.ok) return <p role="alert" className="py-16 font-sans text-body-m tracking-body text-primary">{result.error}</p>
 
   const priced = result.cart
+  const deliveryPrice = quote?.ok ? quote.price : 0
+  const total = priced.total + deliveryPrice
+  const waitingForDelivery = deliveryOn && !quote?.ok
   const buyable = priced.lines.filter((l) => l.qty > 0)
   const hasUnavailable = priced.lines.some((l) => l.status === 'unavailable')
 
@@ -98,11 +143,16 @@ export function CheckoutView() {
     setSending(true)
     setNotice(null)
     try {
-      const outcome = await submitOrder({ lines, expectedTotal: priced.total, form })
+      const outcome = await submitOrder({ lines, expectedTotal: total, form })
       if (outcome.ok) {
-        setPlaced(true)
         cart.clear()
-        router.replace(`/order/${outcome.token}`)
+        if ('paymentUrl' in outcome && outcome.paymentUrl) {
+          setPlaced('Заказ оформлен, переходим к оплате…')
+          window.location.assign(outcome.paymentUrl)
+        } else {
+          setPlaced('Заказ оформлен, открываем его страницу…')
+          router.replace(`/order/${outcome.token}`)
+        }
         return
       }
       if (outcome.reason === 'invalid') {
@@ -113,7 +163,11 @@ export function CheckoutView() {
       } else if (outcome.reason === 'changed') {
         setErrors({})
         reconcile(outcome.cart)
+        setQuoteRound((n) => n + 1)
         showNotice('Пока вы оформляли заказ, изменились цены или наличие. Проверьте, пожалуйста, состав заказа и подтвердите ещё раз.')
+      } else if (outcome.reason === 'delivery') {
+        setQuoteRound((n) => n + 1)
+        showNotice(outcome.message)
       } else if (outcome.reason === 'empty') {
         showNotice('В корзине нет товаров для заказа.')
       } else {
@@ -163,13 +217,27 @@ export function CheckoutView() {
           </div>
           <div className="flex justify-between gap-4 text-primary/80">
             <dt>Доставка</dt>
-            <dd>сообщим отдельно</dd>
+            <dd className="text-right">
+              {!deliveryOn
+                ? 'сообщим отдельно'
+                : quote?.ok
+                  ? quote.free
+                    ? 'бесплатно'
+                    : formatPrice(quote.price)
+                  : quoteKey && !quote
+                    ? 'считаем…'
+                    : 'выберите пункт'}
+              {quote?.ok ? <span className="block font-sans text-caption">{quote.days}</span> : null}
+            </dd>
           </div>
           <div className="flex justify-between gap-4 pt-2 md:text-body">
             <dt>Итого</dt>
-            <dd>{formatPrice(priced.total)}</dd>
+            <dd>{formatPrice(total)}</dd>
           </div>
         </dl>
+        {deliveryOn && freeFrom && priced.total < freeFrom ? (
+          <p className={note}>До бесплатной доставки — {formatPrice(freeFrom - priced.total)}.</p>
+        ) : null}
         {hasUnavailable ? (
           <p className={note}>Товары, которых нет в наличии, в заказ не войдут.</p>
         ) : null}
@@ -190,14 +258,23 @@ export function CheckoutView() {
         </Section>
 
         <Section title="Доставка">
-          <Choice
-            name="deliveryService"
-            legend="Служба доставки"
-            options={DELIVERY_SERVICES.map((s) => ({ value: s.value, label: s.label }))}
-            value={service}
-            onChange={(v) => chooseService(v as DeliveryService)}
-            error={errors.deliveryService}
-          />
+          {SERVICES.length > 1 ? (
+            <Choice
+              name="deliveryService"
+              legend="Служба доставки"
+              options={SERVICES.map((s) => ({ value: s.value, label: s.label }))}
+              value={service}
+              onChange={(v) => chooseService(v as DeliveryService)}
+              error={errors.deliveryService}
+            />
+          ) : (
+            <>
+              <input type="hidden" name="deliveryService" value={service} />
+              <p className="font-sans text-body-m tracking-body text-primary">
+                {labelOf(DELIVERY_SERVICES, service)} <span className="text-primary/70">— по всей России</span>
+              </p>
+            </>
+          )}
           {methodsOf(service).length > 1 ? (
             <Choice
               name="deliveryMethod"
@@ -210,9 +287,23 @@ export function CheckoutView() {
           ) : (
             <input type="hidden" name="deliveryMethod" value={methodsOf(service)[0]} />
           )}
-          <Field name="city" label="Город" autoComplete="address-level2" errors={errors} />
-          <Field name="address" label={address.label} hint={address.hint} multiline errors={errors} />
-          <p className={note}>Стоимость и срок доставки сообщим перед оплатой.</p>
+          {deliveryOn ? (
+            <>
+              <DeliveryPicker method={method} mapsKey={mapsKey} cityError={errors.city} pointError={errors.pickupPoint} onChange={setTarget} />
+              {method === 'courier' ? <Field name="address" label={address.label} hint={address.hint} multiline errors={errors} /> : null}
+              {quote && !quote.ok ? (
+                <p role="alert" className="font-sans text-caption tracking-body text-primary">
+                  {quote.error}
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <Field name="city" label="Город" autoComplete="address-level2" errors={errors} />
+              <Field name="address" label={address.label} hint={address.hint} multiline errors={errors} />
+              <p className={note}>Стоимость и срок доставки сообщим перед оплатой.</p>
+            </>
+          )}
         </Section>
 
         <Section title="Оплата">
@@ -225,7 +316,9 @@ export function CheckoutView() {
             error={errors.paymentMethod}
           />
           <p className={note}>
-            Оплата на сайте подключается. Пока заказ сохранится со статусом «Ожидает оплаты».
+            {paymentsOn
+              ? `Оплата — на защищённой странице ЮKassa: картой, через СБП или SberPay. Вещи отложены за вами на ${PAYMENT_HOLD_MINUTES} минут. Чек придёт на почту.`
+              : 'Оплата на сайте подключается. Пока заказ сохранится со статусом «Ожидает оплаты», и мы свяжемся с вами.'}
           </p>
         </Section>
 
@@ -236,8 +329,8 @@ export function CheckoutView() {
         <div className="flex flex-col gap-6 border-t border-primary/10 pt-6">
           <Consent error={errors.consent} />
           <div className="flex flex-col gap-2">
-            <button type="submit" disabled={sending || buyable.length === 0} className={`${buttonPrimary} w-full md:w-auto md:self-start`}>
-              {sending ? 'Оформляем…' : `Подтвердить заказ · ${formatPrice(priced.total)}`}
+            <button type="submit" disabled={sending || buyable.length === 0 || waitingForDelivery} className={`${buttonPrimary} w-full md:w-auto md:self-start`}>
+              {sending ? 'Оформляем…' : `${paymentsOn ? 'Перейти к оплате' : 'Подтвердить заказ'} · ${formatPrice(total)}`}
             </button>
           </div>
         </div>

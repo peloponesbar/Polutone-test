@@ -1,4 +1,5 @@
 import {
+  CHECKOUT_SERVICES,
   DELIVERY_SERVICES,
   type DeliveryMethod,
   type DeliveryService,
@@ -15,12 +16,16 @@ export type CheckoutData = {
   deliveryService: DeliveryService
   deliveryMethod: DeliveryMethod
   city: string
+  /** Carrier's city code (СДЭК), when delivery is calculated on the site. */
+  cityCode: number | null
+  /** Pickup point code (СДЭК), for delivery to a point. */
+  pickupPoint: string | null
   address: string
   paymentMethod: PaymentMethod
   comment: string
 }
 
-export type CheckoutField = keyof CheckoutData | 'consent'
+export type CheckoutField = Exclude<keyof CheckoutData, 'cityCode'> | 'consent'
 export type CheckoutErrors = Partial<Record<CheckoutField, string>>
 
 export type CheckoutValidation = { ok: true; data: CheckoutData } | { ok: false; errors: CheckoutErrors }
@@ -42,10 +47,14 @@ export function formatPhone(phone: string): string {
   return m ? `+7 ${m[1]} ${m[2]}-${m[3]}-${m[4]}` : phone
 }
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
-/** Validates untrusted checkout input. Messages follow the brand voice: calm, specific. */
-export function validateCheckout(input: Record<string, unknown>): CheckoutValidation {
+/**
+ * Validates untrusted checkout input. Messages follow the brand voice: calm, specific.
+ * `withCarrier`: delivery is calculated on the site — the city comes from the carrier's list
+ * and a pickup point is chosen from it (its address is then filled in by the server).
+ */
+export function validateCheckout(input: Record<string, unknown>, { withCarrier = false } = {}): CheckoutValidation {
   const errors: CheckoutErrors = {}
 
   const name = text(input.name)
@@ -55,9 +64,9 @@ export function validateCheckout(input: Record<string, unknown>): CheckoutValida
   if (!phone) errors.phone = 'Проверьте, пожалуйста, номер телефона: например, +7 900 123-45-67.'
 
   const email = text(input.email).toLowerCase()
-  if (!EMAIL.test(email) || email.length > 200) errors.email = 'Проверьте, пожалуйста, адрес почты.'
+  if (!EMAIL_PATTERN.test(email) || email.length > 200) errors.email = 'Проверьте, пожалуйста, адрес почты.'
 
-  const deliveryService = DELIVERY_SERVICES.find((s) => s.value === input.deliveryService)?.value
+  const deliveryService = DELIVERY_SERVICES.find((s) => s.value === input.deliveryService && CHECKOUT_SERVICES.includes(s.value))?.value
   if (!deliveryService) errors.deliveryService = 'Выберите, пожалуйста, службу доставки.'
 
   const deliveryMethod = deliveryService
@@ -68,8 +77,17 @@ export function validateCheckout(input: Record<string, unknown>): CheckoutValida
   const city = text(input.city)
   if (city.length < 2 || city.length > 100) errors.city = 'Укажите, пожалуйста, город.'
 
+  const cityCode = Number(input.cityCode)
+  const validCityCode = Number.isInteger(cityCode) && cityCode > 0 ? cityCode : null
+  if (withCarrier && !validCityCode && !errors.city) errors.city = 'Выберите, пожалуйста, город из подсказок.'
+
+  const point = text(input.pickupPoint)
+  const pickupPoint = /^[\w-]{1,40}$/.test(point) ? point : null
+  const pointChosenOnSite = withCarrier && deliveryMethod === 'pickup'
+  if (pointChosenOnSite && !pickupPoint) errors.pickupPoint = 'Выберите, пожалуйста, пункт выдачи.'
+
   const address = multiline(input.address)
-  if (address.length < 5 || address.length > 300) {
+  if (!pointChosenOnSite && (address.length < 5 || address.length > 300)) {
     errors.address =
       deliveryMethod === 'courier'
         ? 'Укажите, пожалуйста, улицу, дом и квартиру.'
@@ -96,6 +114,8 @@ export function validateCheckout(input: Record<string, unknown>): CheckoutValida
       deliveryService: deliveryService!,
       deliveryMethod: deliveryMethod!,
       city,
+      cityCode: withCarrier ? validCityCode : null,
+      pickupPoint: pointChosenOnSite ? pickupPoint : null,
       address,
       paymentMethod: paymentMethod!,
       comment,

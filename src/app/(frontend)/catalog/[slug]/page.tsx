@@ -8,7 +8,12 @@ import { ProductCard } from '@/components/site/ProductCard'
 import { ProductBlocks } from '@/components/site/product/ProductBlocks'
 import { ProductInfo } from '@/components/site/product/ProductInfo'
 import { ProductView } from '@/components/site/product/ProductView'
+import { JsonLd } from '@/components/site/JsonLd'
 import { container, label } from '@/components/site/ui'
+import { breadcrumbSchema, productSchema } from '@/lib/schema'
+import { metaDescription, pageOpenGraph, settingsOgImage } from '@/lib/seo'
+import { getSiteSettings } from '@/lib/settings'
+import { siteUrl } from '@/lib/site-url'
 import { getProductBySlug, listRelated } from '@/lib/catalog/queries'
 import type { Media } from '@/payload-types'
 
@@ -21,10 +26,24 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await getProductBySlug((await params).slug, { draft: (await draftMode()).isEnabled })
-  if (!product) return { title: 'Изделие не найдено — POLUTONE' }
+  if (!product) return { title: 'Изделие не найдено' }
+  const { seo } = await getSiteSettings()
+  const category = typeof product.category === 'object' ? product.category : null
+  const description =
+    metaDescription(product.description) ??
+    `${product.title} — ${category ? `${category.name.toLowerCase()} ` : ''}POLUTONE. Свободный крой, унисекс, спокойные цвета.`
+  const path = `/catalog/${product.slug}`
+  const photo = asImage(product.images?.[0])
   return {
-    title: `${product.title} — POLUTONE`,
-    description: product.description ?? undefined,
+    title: product.title,
+    description,
+    alternates: { canonical: path },
+    openGraph: pageOpenGraph({
+      title: `${product.title} — POLUTONE`,
+      description,
+      path,
+      image: photo ? toImageData(photo) : settingsOgImage(seo.image),
+    }),
   }
 }
 
@@ -33,6 +52,7 @@ export default async function ProductPage({ params, searchParams }: Props) {
   const { color } = await searchParams
   if (!product) notFound()
 
+  const base = siteUrl()
   const related = await listRelated(product)
   const category = typeof product.category === 'object' ? product.category : null
   const images = (product.images ?? [])
@@ -49,6 +69,25 @@ export default async function ProductPage({ params, searchParams }: Props) {
 
   return (
     <div className={`${container} pb-16 md:pb-24`}>
+      <JsonLd
+        data={[
+          productSchema(base, {
+            title: product.title,
+            slug: product.slug,
+            description: product.description,
+            article: product.article,
+            category: category?.name,
+            images: images.map((i) => i.url).filter((u): u is string => Boolean(u)),
+            variants,
+            price: product.price,
+          }),
+          breadcrumbSchema(base, [
+            { label: 'Главная', path: '/' },
+            { label: 'Каталог', path: '/catalog' },
+            { label: product.title },
+          ]),
+        ]}
+      />
       <Breadcrumbs
         items={[
           { href: '/', label: 'Главная' },

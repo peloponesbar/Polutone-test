@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
-import { DELIVERY_METHODS, DELIVERY_SERVICES, ORDER_STATUSES, PAYMENT_METHODS } from '../lib/orders/options'
+import { shipOrder, syncShipment } from '../lib/delivery/ship'
+import { CANCEL_REASONS, DELIVERY_METHODS, DELIVERY_SERVICES, ORDER_STATUSES, PAYMENT_METHODS } from '../lib/orders/options'
 
 const options = (list: readonly { value: string; label: string }[]) => list.map(({ value, label }) => ({ value, label }))
 const cell = (name: string, clientProps?: Record<string, unknown>) => ({
@@ -23,6 +24,30 @@ export const Orders: CollectionConfig = {
     description: 'Заказы с сайта. Состав и суммы — как в момент оформления; меняются статус и заметка.',
   },
   defaultSort: '-number',
+  endpoints: [
+    {
+      // «Передать в СДЭК» in the admin (signed-in staff only).
+      path: '/:id/ship',
+      method: 'post',
+      handler: async (req) => {
+        if (!req.user) return Response.json({ ok: false }, { status: 401 })
+        const id = Number(req.routeParams?.id)
+        if (!Number.isInteger(id)) return Response.json({ ok: false }, { status: 400 })
+        const result = await shipOrder(req.payload, id)
+        if (result === 'created') await syncShipment(req.payload, id)
+        return Response.json({ ok: result !== 'failed', result })
+      },
+    },
+  ],
+  hooks: {
+    beforeChange: [
+      // An admin cancelling by hand: record it, so the buyer's page doesn't blame the payment.
+      ({ data, originalDoc }) => {
+        if (data.status === 'cancelled' && originalDoc?.status !== 'cancelled' && !data.cancelReason) data.cancelReason = 'shop'
+        return data
+      },
+    ],
+  },
   access: {
     read: ({ req }) => Boolean(req.user),
     update: ({ req }) => Boolean(req.user),
@@ -77,6 +102,56 @@ export const Orders: CollectionConfig = {
       },
     },
     {
+      name: 'paidAt',
+      label: 'Оплачен',
+      type: 'date',
+      admin: { readOnly: true, position: 'sidebar', date: { pickerAppearance: 'dayAndTime', displayFormat: 'd MMMM yyyy, HH:mm' } },
+    },
+    {
+      name: 'paymentId',
+      label: 'Платёж в ЮKassa',
+      type: 'text',
+      index: true,
+      admin: { readOnly: true, position: 'sidebar', description: 'Последний созданный платёж по заказу.' },
+    },
+    {
+      name: 'paymentAttempts',
+      type: 'number',
+      defaultValue: 0,
+      admin: { hidden: true },
+    },
+    {
+      name: 'trackNumber',
+      label: 'Трек-номер СДЭК',
+      type: 'text',
+      admin: { readOnly: true, position: 'sidebar' },
+    },
+    {
+      name: 'shipmentStatus',
+      label: 'Статус в СДЭК',
+      type: 'text',
+      admin: { readOnly: true, position: 'sidebar' },
+    },
+    {
+      name: 'shipmentId',
+      label: 'Заказ в СДЭК',
+      type: 'text',
+      index: true,
+      admin: { readOnly: true, position: 'sidebar', description: 'Пусто у оплаченного заказа — он не передан в СДЭК.' },
+    },
+    {
+      name: 'shipAction',
+      type: 'ui',
+      admin: { position: 'sidebar', components: { Field: '/components/admin/ShipButton#ShipButton' } },
+    },
+    {
+      name: 'cancelReason',
+      label: 'Причина отмены',
+      type: 'select',
+      options: options(CANCEL_REASONS),
+      admin: { readOnly: true, position: 'sidebar', condition: (data) => data?.status === 'cancelled' },
+    },
+    {
       name: 'note',
       label: 'Заметка для команды',
       type: 'textarea',
@@ -110,6 +185,7 @@ export const Orders: CollectionConfig = {
                 { name: 'price', label: 'Цена, ₽', type: 'number', required: true },
                 { name: 'qty', label: 'Количество', type: 'number', required: true },
                 { name: 'lineTotal', label: 'Сумма, ₽', type: 'number', required: true },
+                { name: 'weight', label: 'Вес одной вещи, г', type: 'number' },
               ],
             },
             { name: 'itemsTotal', label: 'Товары, ₽', type: 'number', required: true, admin: { readOnly: true } },
@@ -150,6 +226,15 @@ export const Orders: CollectionConfig = {
               options: options(DELIVERY_METHODS),
             },
             { name: 'city', label: 'Город', type: 'text', required: true },
+            {
+              type: 'row',
+              fields: [
+                { name: 'cityCode', label: 'Код города в СДЭК', type: 'number', admin: { readOnly: true, width: '33%' } },
+                { name: 'pickupPoint', label: 'Пункт выдачи (код)', type: 'text', admin: { readOnly: true, width: '33%' } },
+                { name: 'deliveryDays', label: 'Срок доставки', type: 'text', admin: { readOnly: true, width: '33%' } },
+              ],
+            },
+            { name: 'tariffCode', type: 'number', admin: { hidden: true } },
             { name: 'address', label: 'Адрес или пункт выдачи', type: 'textarea', required: true },
             {
               name: 'paymentMethod',

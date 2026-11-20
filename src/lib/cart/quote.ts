@@ -14,6 +14,7 @@ function variantsOf(products: Product[], wanted: Set<string>): Map<string, Varia
   const map = new Map<string, VariantInfo>()
   for (const product of products) {
     const images = (product.images ?? []).map(asMedia).filter((m): m is Media => m !== null)
+    const weight = typeof product.category === 'object' ? (product.category?.itemWeight ?? null) : null
     for (const v of product.variants ?? []) {
       if (!wanted.has(v.externalId)) continue
       const color = v.color ?? ''
@@ -29,6 +30,7 @@ function variantsOf(products: Product[], wanted: Set<string>): Map<string, Varia
         oldPrice: product.oldPrice ?? null,
         available: Math.max(0, v.available),
         image: photo?.url ? { url: photo.url, alt: photo.alt } : null,
+        weight,
       })
     }
   }

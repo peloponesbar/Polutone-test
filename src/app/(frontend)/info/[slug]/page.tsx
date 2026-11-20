@@ -7,7 +7,13 @@ import { Breadcrumbs } from '@/components/site/Breadcrumbs'
 import { SizeChartTable } from '@/components/site/SizeChartTable'
 import { container, focusRing, label } from '@/components/site/ui'
 import { listProducts } from '@/lib/catalog/queries'
+import { JsonLd } from '@/components/site/JsonLd'
+import { breadcrumbSchema } from '@/lib/schema'
+import { metaDescription, pageOpenGraph, settingsOgImage } from '@/lib/seo'
+import { siteUrl } from '@/lib/site-url'
 import { getInfoPage, listInfoLinks, paragraphs } from '@/lib/info'
+import { getSiteSettings } from '@/lib/settings'
+import { ContactRows } from '@/components/site/ContactList'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +21,17 @@ type Props = { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const page = await getInfoPage((await params).slug, { draft: (await draftMode()).isEnabled })
-  return { title: page ? `${page.title} — POLUTONE` : 'Страница не найдена — POLUTONE' }
+  if (!page) return { title: 'Страница не найдена' }
+  const { seo } = await getSiteSettings()
+  const description =
+    metaDescription(page.intro) ?? metaDescription(page.sections?.[0]?.text) ?? `${page.title} — интернет-магазин POLUTONE.`
+  const path = `/info/${page.slug}`
+  return {
+    title: page.title,
+    description,
+    alternates: { canonical: path },
+    openGraph: pageOpenGraph({ title: `${page.title} — POLUTONE`, description, path, image: settingsOgImage(seo.image) }),
+  }
 }
 
 export default async function InfoPageView({ params }: Props) {
@@ -26,12 +42,20 @@ export default async function InfoPageView({ params }: Props) {
   ])
   if (!page) notFound()
 
+  const settings = page.showContacts ? await getSiteSettings() : null
   const charts = page.showSizeCharts
     ? (await listProducts({ sort: 'new' })).filter((p) => p.measurements)
     : []
 
   return (
     <div className={`${container} pb-16 md:pb-24`}>
+      <JsonLd
+        data={breadcrumbSchema(siteUrl(), [
+          { label: 'Главная', path: '/' },
+          { label: 'Информация', path: '/info' },
+          { label: page.title },
+        ])}
+      />
       <Breadcrumbs
         items={[{ href: '/', label: 'Главная' }, { href: '/info', label: 'Информация' }, { label: page.title }]}
       />
@@ -79,6 +103,22 @@ export default async function InfoPageView({ params }: Props) {
               ))}
             </section>
           ))}
+
+          {settings ? (
+            <section className="flex flex-col gap-4 border-t border-primary/10 pt-6">
+              <h2 className={label}>Связь</h2>
+              {settings.contacts.length > 0 ? (
+                <ContactRows contacts={settings.contacts} hours={settings.hours} />
+              ) : (
+                <p className="max-w-[60ch] font-sans text-body-m tracking-body text-primary/80 md:text-body">
+                  Контакты для связи скоро появятся на этой странице.
+                </p>
+              )}
+              {settings.legal ? (
+                <p className="max-w-[60ch] font-sans text-caption tracking-body text-primary/80">Продавец: {settings.legal}</p>
+              ) : null}
+            </section>
+          ) : null}
 
           {charts.map((product) => (
             <section key={product.id} className="flex flex-col gap-4 border-t border-primary/10 pt-6">

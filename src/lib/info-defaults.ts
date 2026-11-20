@@ -9,6 +9,8 @@ export type InfoPageDefault = {
   intro: string
   sections: { heading?: string; text: string }[]
   showSizeCharts?: boolean
+  /** Contacts and seller details from «Настройки сайта» under the text. */
+  showContacts?: boolean
 }
 
 export const INFO_PAGE_DEFAULTS: InfoPageDefault[] = [
@@ -102,12 +104,8 @@ export const INFO_PAGE_DEFAULTS: InfoPageDefault[] = [
         heading: 'О бренде',
         text: 'Мы делаем одежду, которая встаёт на место, как деталь пазла: точно для человека, а не для чужого взгляда.\n\nУбираем из вещи лишний шум и оставляем одну точную деталь. Свободная посадка, унисекс, спокойные цвета.',
       },
-      {
-        heading: 'Связь',
-        text: 'Telegram, почта и телефон появятся здесь перед запуском магазина.',
-      },
-      { heading: 'Продавец', text: 'Данные продавца будут указаны перед запуском магазина.' },
     ],
+    showContacts: true,
   },
   {
     slug: 'privacy',
@@ -126,6 +124,10 @@ export const INFO_PAGE_DEFAULTS: InfoPageDefault[] = [
       {
         heading: 'Кому передаём',
         text: 'Службе доставки, которую вы выбрали, — для доставки заказа. Платёжному сервису — для оплаты и чека. Больше никому.',
+      },
+      {
+        heading: 'Карта пунктов выдачи',
+        text: 'При выборе пункта выдачи на странице оформления загружается карта Яндекса. Яндекс может получить технические данные вашего браузера и сохранить свои cookie — по своей политике конфиденциальности. Ваши имя, телефон и адрес на карту не передаются.',
       },
       {
         heading: 'Где и сколько храним',

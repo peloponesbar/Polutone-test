@@ -68,5 +68,12 @@ export const InfoPages: CollectionConfig = {
       defaultValue: false,
       admin: { description: 'Для страницы «Таблица размеров»: под текстом — обмеры каждой модели из МойСклада.' },
     },
+    {
+      name: 'showContacts',
+      label: 'Показать контакты',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: { description: 'Для страницы «Контакты»: под текстом — блок «Связь» из «Настроек сайта».' },
+    },
   ],
 }

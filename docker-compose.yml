@@ -1,0 +1,84 @@
+# POLUTONE on one Timeweb Cloud server: Caddy (HTTPS) -> app (Next.js + Payload) -> db (Postgres).
+# Secrets live in `.env` next to this file ON THE SERVER ONLY (see deploy/.env.production.example).
+#
+#   docker compose up -d --build            start / update
+#   docker compose run --rm migrate         apply DB migrations (run on every deploy)
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: polutone
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: polutone
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U polutone -d polutone']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+    # No published ports: the database is reachable only from other containers.
+
+  app:
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://polutone:${POSTGRES_PASSWORD}@db:5432/polutone
+      SITE_URL: https://${DOMAIN:?set DOMAIN in .env}
+      NODE_OPTIONS: --no-deprecation --max-old-space-size=1536
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+
+  # One-off job: `docker compose run --rm migrate`. Uses the full builder image (has the Payload CLI).
+  migrate:
+    profiles: ['tools']
+    build:
+      context: .
+      target: builder
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://polutone:${POSTGRES_PASSWORD}@db:5432/polutone
+    command: npm run migrate
+    depends_on:
+      db:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

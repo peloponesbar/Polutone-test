@@ -4,8 +4,16 @@ import Link from 'next/link'
 import { Breadcrumbs } from '@/components/site/Breadcrumbs'
 import { container, focusRing } from '@/components/site/ui'
 import { listInfoLinks } from '@/lib/info'
+import { pageOpenGraph } from '@/lib/seo'
 
-export const metadata: Metadata = { title: 'Информация — POLUTONE' }
+const description = 'Доставка, оплата, возврат, таблица размеров и контакты интернет-магазина POLUTONE.'
+
+export const metadata: Metadata = {
+  title: 'Информация',
+  description,
+  alternates: { canonical: '/info' },
+  openGraph: pageOpenGraph({ title: 'Информация — POLUTONE', description, path: '/info' }),
+}
 export const dynamic = 'force-dynamic'
 
 /** All «Информация» pages in one list (also the no-JS fallback for the header dropdown). */

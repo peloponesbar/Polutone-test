@@ -3,6 +3,7 @@ import { ThumbCell as ThumbCell_82d45031ba630664b60abac07ecd5b29 } from '../../.
 import { PriceCell as PriceCell_82d45031ba630664b60abac07ecd5b29 } from '../../../components/admin/cells'
 import { SyncButton as SyncButton_8b5620ada6f9f2fccddad6f5fc6be1b8 } from '../../../components/admin/SyncButton'
 import { StatusCell as StatusCell_82d45031ba630664b60abac07ecd5b29 } from '../../../components/admin/cells'
+import { ShipButton as ShipButton_c4abef1e7f8e79fcbb6489da1a5450bd } from '../../../components/admin/ShipButton'
 import { OrderSummary as OrderSummary_1999d0bc4395900ada89eec19782e4da } from '../../../components/admin/OrderSummary'
 import { Avatar as Avatar_ff2b3aef4ce7bf470d100ee3d53f4ed9 } from '../../../components/admin/Avatar'
 import { Icon as Icon_81fda60f3e3709e861f40982a767707d } from '../../../components/admin/Brand'
@@ -19,6 +20,7 @@ export const importMap = {
   "/components/admin/cells#PriceCell": PriceCell_82d45031ba630664b60abac07ecd5b29,
   "/components/admin/SyncButton#SyncButton": SyncButton_8b5620ada6f9f2fccddad6f5fc6be1b8,
   "/components/admin/cells#StatusCell": StatusCell_82d45031ba630664b60abac07ecd5b29,
+  "/components/admin/ShipButton#ShipButton": ShipButton_c4abef1e7f8e79fcbb6489da1a5450bd,
   "/components/admin/OrderSummary#OrderSummary": OrderSummary_1999d0bc4395900ada89eec19782e4da,
   "/components/admin/Avatar#Avatar": Avatar_ff2b3aef4ce7bf470d100ee3d53f4ed9,
   "/components/admin/Brand#Icon": Icon_81fda60f3e3709e861f40982a767707d,

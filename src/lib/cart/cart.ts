@@ -23,6 +23,8 @@ export type VariantInfo = {
   oldPrice: number | null
   available: number
   image: { url: string; alt: string } | null
+  /** Weight of one item, grams (from its category), for the delivery price. */
+  weight?: number | null
 }
 
 export type PricedLine = VariantInfo & {

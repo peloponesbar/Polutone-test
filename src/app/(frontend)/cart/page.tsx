@@ -4,7 +4,7 @@ import { Breadcrumbs } from '@/components/site/Breadcrumbs'
 import { CartView } from '@/components/site/cart/CartView'
 import { container } from '@/components/site/ui'
 
-export const metadata: Metadata = { title: 'Корзина — POLUTONE', robots: { index: false } }
+export const metadata: Metadata = { title: 'Корзина', robots: { index: false } }
 
 export default function CartPage() {
   return (

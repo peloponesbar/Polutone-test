@@ -1,0 +1,7 @@
+# Caddy gets and renews the HTTPS certificate by itself. DOMAIN comes from .env (e.g. polutone.ru).
+{$DOMAIN}, www.{$DOMAIN} {
+	encode zstd gzip
+	@www host www.{$DOMAIN}
+	redir @www https://{$DOMAIN}{uri} permanent
+	reverse_proxy app:3000
+}

@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload'
 
+import { DELIVERY_DEFAULTS } from '../lib/delivery/rules'
+
 /** Product categories. Created by catalog sync from MoySklad folders; order is set by hand. */
 export const Categories: CollectionConfig = {
   slug: 'categories',
@@ -49,6 +51,14 @@ export const Categories: CollectionConfig = {
       type: 'number',
       defaultValue: 100,
       admin: { description: 'Меньше — левее во вкладках каталога.' },
+    },
+    {
+      name: 'itemWeight',
+      label: 'Вес одной вещи, г',
+      type: 'number',
+      min: 1,
+      defaultValue: DELIVERY_DEFAULTS.itemWeight,
+      admin: { description: 'Для расчёта доставки СДЭК. Позже будет приходить из МойСклада.' },
     },
   ],
 }

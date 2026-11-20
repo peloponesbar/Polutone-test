@@ -13,7 +13,10 @@ import { Orders } from './collections/Orders'
 import { Products } from './collections/Products'
 import { Users } from './collections/Users'
 import { Home } from './globals/Home'
+import { SiteSettings } from './globals/SiteSettings'
 import { PREVIEW_BREAKPOINTS } from './lib/preview'
+import { emailAdapter } from './lib/mail/adapter'
+import { paymentEndpoints } from './lib/payments/endpoints'
 import { storagePlugins } from './lib/storage'
 
 function requireEnv(name: string): string {
@@ -62,8 +65,10 @@ export default buildConfig({
     translations: { ru: { general: { searchBy: 'Искать: {{label}}', or: 'или' } } },
   },
   collections: [Products, Categories, Orders, InfoPages, Media, Users],
-  globals: [Home],
+  globals: [Home, SiteSettings],
   editor: lexicalEditor(),
+  email: emailAdapter(process.env),
+  endpoints: paymentEndpoints,
   secret: requireEnv('PAYLOAD_SECRET'),
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),

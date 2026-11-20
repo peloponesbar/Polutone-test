@@ -14,6 +14,23 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number]['value']
 
+/** How long an unpaid order keeps its items; then it is cancelled and they go back on sale. */
+export const PAYMENT_HOLD_MINUTES = 60
+
+export const CANCEL_REASONS = [
+  { value: 'unpaid', label: 'Не оплачен вовремя' },
+  { value: 'shop', label: 'Отменён магазином' },
+] as const
+
+/** Until when an unpaid order keeps its items. */
+export const paymentDeadline = (createdAt: string | Date) => new Date(new Date(createdAt).getTime() + PAYMENT_HOLD_MINUTES * 60_000)
+
+/** «14:35» in Moscow time — the shop's time zone. */
+export const moscowTime = (date: Date) =>
+  new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }).format(date)
+
+export type CancelReason =(typeof CANCEL_REASONS)[number]['value']
+
 /** Statuses that still need the shop's attention. */
 export const OPEN_STATUSES: OrderStatus[] = ['awaiting_payment', 'paid', 'assembling']
 
@@ -24,6 +41,9 @@ export const DELIVERY_SERVICES = [
 ] as const
 
 export type DeliveryService = (typeof DELIVERY_SERVICES)[number]['value']
+
+/** Services offered at checkout now. Яндекс Доставка and Почта России come in phase 4. */
+export const CHECKOUT_SERVICES: readonly DeliveryService[] = ['cdek']
 
 export const DELIVERY_METHODS = [
   { value: 'pickup', label: 'В пункт выдачи' },

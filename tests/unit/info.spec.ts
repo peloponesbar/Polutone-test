@@ -40,6 +40,12 @@ describe('info page defaults', () => {
     expect(INFO_PAGE_DEFAULTS.filter((p) => p.showSizeCharts).map((p) => p.slug)).toEqual(['razmery'])
   })
 
+  it('only the contacts page shows the contacts block, with no placeholder sections left', () => {
+    expect(INFO_PAGE_DEFAULTS.filter((p) => p.showContacts).map((p) => p.slug)).toEqual(['kontakty'])
+    const contacts = INFO_PAGE_DEFAULTS.find((p) => p.slug === 'kontakty')
+    expect(JSON.stringify(contacts)).not.toContain('появятся здесь')
+  })
+
   it('follows the brand voice: no exclamation marks or forbidden words', () => {
     const text = JSON.stringify(INFO_PAGE_DEFAULTS).toLowerCase()
     expect(text).not.toContain('!')

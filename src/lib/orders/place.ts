@@ -1,23 +1,27 @@
 import { randomBytes } from 'node:crypto'
 
-import { sql } from '@payloadcms/db-postgres'
 import { commitTransaction, createLocalReq, initTransaction, killTransaction, type Payload, type PayloadRequest } from 'payload'
 
 import { type PricedCart, sanitizeLines } from '@/lib/cart/cart'
 import { quoteCart } from '@/lib/cart/quote'
-import { updateSourceData } from '@/lib/catalog/sync'
 import { formatPrice } from '@/lib/format'
+import { getCarrier } from '@/lib/delivery'
+import { type DeliveryQuote, quoteDelivery } from '@/lib/delivery/quote'
+import { buyerPrice, daysLabel, type DeliveryPrice } from '@/lib/delivery/rules'
+import { getDeliverySettings } from '@/lib/delivery/settings'
+import type { Carrier, PickupPoint } from '@/lib/delivery/types'
+import { sendOrderMail } from '@/lib/mail/orders'
 import { sendTelegram } from '@/lib/notify/telegram'
+import { expireUnpaidOrders } from '@/lib/payments/flow'
 import type { Order } from '@/payload-types'
 
 import { type CheckoutData, type CheckoutErrors, formatPhone, validateCheckout } from './checkout'
 import { getOrderSink, type OrderSink } from './moysklad'
 import { DELIVERY_METHODS, DELIVERY_SERVICES, labelOf } from './options'
+import { changeStock } from './stock'
+import { advisoryLock, CHECKOUT_LOCK } from './tx'
 
 export const FIRST_ORDER_NUMBER = 1001
-
-/** Any constant: one lock id serializes checkouts, so two buyers can't take the last item. */
-const ORDER_LOCK = 7_206_011
 
 export type PlaceOrderInput = {
   lines: unknown
@@ -30,31 +34,26 @@ export type PlaceOrderResult =
   | { ok: true; number: number; token: string }
   | { ok: false; reason: 'invalid'; errors: CheckoutErrors }
   | { ok: false; reason: 'empty' }
-  | { ok: false; reason: 'changed'; cart: PricedCart }
+  | { ok: false; reason: 'changed'; cart: PricedCart; delivery: number | null }
+  | { ok: false; reason: 'delivery'; message: string }
   | { ok: false; reason: 'error'; message: string }
 
 export type PlaceOrderDeps = {
   sink?: OrderSink
   notify?: (text: string) => Promise<unknown>
+  mail?: typeof sendOrderMail
+  /** null — no carrier (delivery agreed later); undefined — from the environment. */
+  carrier?: Carrier | null
 }
 
 /** True when prices or stock moved since the buyer looked: never charge for something else. */
-function cartChanged(cart: PricedCart, expectedTotal: unknown): boolean {
+function cartChanged(cart: PricedCart, expectedTotal: unknown, delivery: number): boolean {
   return (
     cart.lines.length === 0 ||
     cart.missing.length > 0 ||
     cart.lines.some((l) => l.status !== 'ok') ||
-    cart.total !== expectedTotal
+    cart.total + delivery !== expectedTotal
   )
-}
-
-async function lockOrders(payload: Payload, req: PayloadRequest) {
-  // The transaction's own connection: the lock is released on commit or rollback.
-  const sessions = (payload.db as unknown as { sessions: Record<string, { db: { execute: (q: unknown) => Promise<unknown> } }> })
-    .sessions
-  const session = req.transactionID ? sessions[String(req.transactionID)] : undefined
-  if (!session) throw new Error('Checkout needs a database transaction')
-  await session.db.execute(sql`select pg_advisory_xact_lock(${ORDER_LOCK})`)
 }
 
 async function nextOrderNumber(payload: Payload, req: PayloadRequest): Promise<number> {
@@ -62,25 +61,11 @@ async function nextOrderNumber(payload: Payload, req: PayloadRequest): Promise<n
   return Math.max(FIRST_ORDER_NUMBER, (last.docs[0]?.number ?? 0) + 1)
 }
 
-/** Takes the ordered quantities off the site's stock (the source catches up on its next sync). */
-async function reserveStock(payload: Payload, cart: PricedCart, req: PayloadRequest) {
-  const byProduct = new Map<number, Map<string, number>>()
-  for (const line of cart.lines) {
-    const qtys = byProduct.get(line.productId) ?? new Map<string, number>()
-    qtys.set(line.variantId, line.qty)
-    byProduct.set(line.productId, qtys)
-  }
-  for (const [productId, qtys] of byProduct) {
-    const product = await payload.findByID({ collection: 'products', id: productId, depth: 0, draft: false, req })
-    const variants = (product.variants ?? []).map((v) => ({
-      ...v,
-      available: Math.max(0, v.available - (qtys.get(v.externalId) ?? 0)),
-    }))
-    await updateSourceData(payload, productId, { variants, inStock: variants.some((v) => v.available > 0) }, req)
-  }
-}
+type OrderDelivery = DeliveryPrice & { tariffCode: number; point: PickupPoint | null }
 
-function orderData(number: number, token: string, data: CheckoutData, cart: PricedCart) {
+function orderData(number: number, token: string, data: CheckoutData, cart: PricedCart, delivery: OrderDelivery | null) {
+  const point = delivery?.point
+  const deliveryCost = delivery ? delivery.price : null
   return {
     title: `№ ${number} · ${data.name}`,
     number,
@@ -95,17 +80,23 @@ function orderData(number: number, token: string, data: CheckoutData, cart: Pric
       price: l.price,
       qty: l.qty,
       lineTotal: l.lineTotal,
+      weight: l.weight ?? null,
     })),
     itemsTotal: cart.total,
-    deliveryCost: null,
-    total: cart.total,
+    deliveryCost,
+    total: cart.total + (deliveryCost ?? 0),
     customerName: data.name,
     phone: data.phone,
     email: data.email,
     deliveryService: data.deliveryService,
     deliveryMethod: data.deliveryMethod,
     city: data.city,
-    address: data.address,
+    cityCode: data.cityCode,
+    pickupPoint: point?.code ?? null,
+    tariffCode: delivery?.tariffCode ?? null,
+    deliveryDays: delivery ? daysLabel(delivery.daysMin, delivery.daysMax) : null,
+    // A point chosen on the site: its address from the carrier, not from the browser.
+    address: point ? `${point.address} (пункт ${point.code})` : data.address,
     paymentMethod: data.paymentMethod,
     comment: data.comment,
     consentAt: new Date().toISOString(),
@@ -113,7 +104,9 @@ function orderData(number: number, token: string, data: CheckoutData, cart: Pric
 }
 
 /** Telegram text for a new order: everything the shop needs to act, as plain text. */
-export function orderMessage(order: Pick<Order, 'number' | 'total' | 'items' | 'customerName' | 'phone' | 'email' | 'deliveryService' | 'deliveryMethod' | 'city' | 'address' | 'comment'>): string {
+export function orderMessage(
+  order: Pick<Order, 'number' | 'total' | 'items' | 'customerName' | 'phone' | 'email' | 'deliveryService' | 'deliveryMethod' | 'city' | 'address' | 'comment' | 'deliveryCost' | 'deliveryDays'>,
+): string {
   const items = order.items.map((i) => `• ${i.title}, ${[i.color, i.size].filter(Boolean).join(', ')} — ${i.qty} × ${formatPrice(i.price)}`)
   return [
     `Новый заказ № ${order.number} — ${formatPrice(order.total)}`,
@@ -121,6 +114,7 @@ export function orderMessage(order: Pick<Order, 'number' | 'total' | 'items' | '
     '',
     `${order.customerName}, ${formatPhone(order.phone)}, ${order.email}`,
     `${labelOf(DELIVERY_SERVICES, order.deliveryService)}, ${labelOf(DELIVERY_METHODS, order.deliveryMethod).toLowerCase()}: ${order.city}, ${order.address}`,
+    `Доставка: ${order.deliveryCost != null ? formatPrice(order.deliveryCost) : 'стоимость сообщить покупателю'}${order.deliveryDays ? `, ${order.deliveryDays}` : ''}`,
     ...(order.comment ? [`Комментарий: ${order.comment}`] : []),
     'Оплата: ожидается',
   ].join('\n')
@@ -132,28 +126,52 @@ export function orderMessage(order: Pick<Order, 'number' | 'total' | 'items' | '
  * notifies the shop; those may fail without losing the order (the admin sees what's missing).
  */
 export async function placeOrder(payload: Payload, input: PlaceOrderInput, deps: PlaceOrderDeps = {}): Promise<PlaceOrderResult> {
-  const valid = validateCheckout(input.form)
+  const carrier = deps.carrier === undefined ? getCarrier() : deps.carrier
+  const valid = validateCheckout(input.form, { withCarrier: carrier !== null })
   if (!valid.ok) return { ok: false, reason: 'invalid', errors: valid.errors }
 
   const lines = sanitizeLines(input.lines)
   if (lines.length === 0) return { ok: false, reason: 'empty' }
 
+  // The carrier's tariff, fetched before the lock (a network call): the free-delivery rule
+  // is applied again below to the cart as priced under the lock.
+  let tariff: DeliveryQuote | null = null
+  let freeFrom: number | null = null
+  if (carrier && valid.data.cityCode) {
+    const settings = await getDeliverySettings(payload)
+    freeFrom = settings.freeFrom
+    const quoted = await quoteDelivery(payload, carrier, await quoteCart(payload, lines), {
+      method: valid.data.deliveryMethod,
+      cityCode: valid.data.cityCode,
+      pickupPoint: valid.data.pickupPoint,
+      address: valid.data.address,
+    }, { settings })
+    if (!quoted.ok) return { ok: false, reason: 'delivery', message: quoted.error }
+    tariff = quoted.delivery
+  }
+
+  // Items held by unpaid orders past their time go back on sale before this cart is priced.
+  await expireUnpaidOrders(payload, deps).catch((error) => payload.logger.error({ err: error, msg: 'Order expiry failed' }))
+
   const req = await createLocalReq({}, payload)
   let order: Order
   try {
     await initTransaction(req)
-    await lockOrders(payload, req)
+    await advisoryLock(payload, req, CHECKOUT_LOCK)
 
     const cart = await quoteCart(payload, lines, req)
-    if (cartChanged(cart, input.expectedTotal)) {
+    const delivery: OrderDelivery | null = tariff
+      ? { ...buyerPrice(tariff.tariff, cart.total, freeFrom), tariffCode: tariff.tariffCode, point: tariff.point }
+      : null
+    if (cartChanged(cart, input.expectedTotal, delivery?.price ?? 0)) {
       await killTransaction(req)
-      return { ok: false, reason: 'changed', cart }
+      return { ok: false, reason: 'changed', cart, delivery: delivery?.price ?? null }
     }
 
     const number = await nextOrderNumber(payload, req)
     const token = randomBytes(18).toString('base64url')
-    order = await payload.create({ collection: 'orders', data: orderData(number, token, valid.data, cart), req })
-    await reserveStock(payload, cart, req)
+    order = await payload.create({ collection: 'orders', data: orderData(number, token, valid.data, cart, delivery), req })
+    await changeStock(payload, cart.lines, -1, req)
     await commitTransaction(req)
   } catch (error) {
     await killTransaction(req)
@@ -187,5 +205,11 @@ async function handOff(payload: Payload, order: Order, deps: PlaceOrderDeps) {
     await (deps.notify ?? sendTelegram)(orderMessage(order))
   } catch (error) {
     payload.logger.error({ err: error, msg: `Telegram notification for order ${order.number} failed` })
+  }
+
+  try {
+    await (deps.mail ?? sendOrderMail)(payload, order, 'placed')
+  } catch (error) {
+    payload.logger.error({ err: error, msg: `Order ${order.number} confirmation email failed` })
   }
 }
