@@ -11,12 +11,16 @@ import { organizationSchema, websiteSchema } from '@/lib/schema'
 import { getSiteSettings } from '@/lib/settings'
 import { siteUrl } from '@/lib/site-url'
 import { getHome, listCategories, listNewest } from '@/lib/catalog/queries'
-import type { Product } from '@/payload-types'
+import type { Media, Product } from '@/payload-types'
 
 export const metadata = { alternates: { canonical: '/' } }
 export const dynamic = 'force-dynamic'
 
 const section = 'border-t border-primary/10 py-16 md:py-24'
+
+/** CSS aspect-ratio of an uploaded photo; 16 / 9 if its size is unknown. */
+const imageRatio = (media: Pick<Media, 'width' | 'height'>) =>
+  media.width && media.height ? `${media.width} / ${media.height}` : '16 / 9'
 
 const paragraphs = (text?: string | null) =>
   (text ?? '')
@@ -44,9 +48,9 @@ export default async function HomePage() {
       {/* 1. Hero: photo first, text below it — normal flow, so they never overlap at any width */}
       <section aria-labelledby="hero-title">
         {heroImage ? (
-          // Desktop shows the whole 16:9 photo uncropped; phones crop to 4:5 around the centre figure.
-          <div className="relative aspect-[4/5] overflow-hidden bg-surface md:aspect-[16/9]">
-            <MediaImage media={heroImage} priority sizes="100vw" className="object-[62%_center] md:object-center" />
+          // The whole photo at its own proportions on every screen: never cropped, it scales with the width.
+          <div className="relative overflow-hidden bg-surface" style={{ aspectRatio: imageRatio(heroImage) }}>
+            <MediaImage media={heroImage} priority sizes="100vw" />
           </div>
         ) : null}
         {/* Heading and text sit side by side only from 1280 px, where the 64 px heading fits its column. */}

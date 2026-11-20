@@ -797,7 +797,7 @@ export interface Home {
   id: number;
   hero?: {
     /**
-     * Широкая, от 1600 px. Левая часть — под текст, без важных деталей.
+     * Широкая, от 1600 px. Показывается целиком на любом экране, без обрезки.
      */
     image?: (number | null) | Media;
     title?: string | null;
