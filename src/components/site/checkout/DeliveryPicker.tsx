@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 
 import { getPickupPoints, searchCities } from '@/app/(frontend)/checkout/delivery-actions'
-import { focusRing, tab, tabOff, tabOn } from '@/components/site/ui'
+import { buttonSecondary, focusRing, tab, tabOff, tabOn } from '@/components/site/ui'
 import type { City, PickupPoint } from '@/lib/delivery/types'
 
 import { PickupMap } from './PickupMap'
@@ -218,6 +218,10 @@ function PointChooser({
   const id = useId()
   const [filter, setFilter] = useState('')
   const [view, setView] = useState<'list' | 'map'>('list')
+  // Free Yandex Maps terms: load the map (and send Yandex the visitor's browser data) only
+  // when the buyer asks for it. The list works without it.
+  const [mapOn, setMapOn] = useState(false)
+  const showMap = Boolean(mapsKey) && mapOn
   const shown = useMemo(() => {
     const q = filter.trim().toLowerCase()
     return q ? points.filter((p) => `${p.name} ${p.address}`.toLowerCase().includes(q)) : points
@@ -239,7 +243,23 @@ function PointChooser({
         Пункт выдачи <span className="text-primary/70">· {points.length}</span>
       </legend>
 
-      {mapsKey ? (
+      {mapsKey && !mapOn ? (
+        <div className="flex flex-col items-start gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setMapOn(true)
+              setView('map')
+            }}
+            className={buttonSecondary}
+          >
+            Показать на карте
+          </button>
+          <p className={note}>Карта загружается с сервиса Яндекс Карт — только по этой кнопке.</p>
+        </div>
+      ) : null}
+
+      {showMap ? (
         <div className="flex gap-2 md:hidden" role="group" aria-label="Как показать пункты">
           <button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')} className={`${tab} flex-1 ${view === 'list' ? tabOn : tabOff}`}>
             Списком
@@ -250,8 +270,8 @@ function PointChooser({
         </div>
       ) : null}
 
-      <div className={`grid grid-cols-1 gap-3 ${mapsKey ? 'md:grid-cols-2' : ''}`}>
-        <div className={`flex flex-col gap-3 ${mapsKey && view === 'map' ? 'hidden md:flex' : ''}`}>
+      <div className={`grid grid-cols-1 gap-3 ${showMap ? 'md:grid-cols-2' : ''}`}>
+        <div className={`flex flex-col gap-3 ${showMap && view === 'map' ? 'hidden md:flex' : ''}`}>
           <input
             type="search"
             aria-label="Найти пункт по улице"
@@ -282,7 +302,7 @@ function PointChooser({
             })}
           </div>
         </div>
-        {mapsKey ? (
+        {showMap && mapsKey ? (
           <div className={`h-[360px] md:h-auto ${view === 'list' ? 'hidden md:block' : ''}`}>
             <PickupMap apiKey={mapsKey} points={points} selected={selected?.code ?? null} onSelect={pickByCode} />
           </div>

@@ -13,7 +13,7 @@ import { useCartQuote } from '@/components/site/cart/useCartQuote'
 import { buttonPrimary, buttonSecondary, focusRing, label, textLink } from '@/components/site/ui'
 import { cart } from '@/lib/cart/store'
 import { formatPrice } from '@/lib/format'
-import type { CheckoutErrors, CheckoutField } from '@/lib/orders/checkout'
+import { type CheckoutErrors, type CheckoutField, maskPhone } from '@/lib/orders/checkout'
 import {
   CHECKOUT_SERVICES,
   DELIVERY_METHODS,
@@ -253,7 +253,7 @@ export function CheckoutView({
 
         <Section title="Контакты">
           <Field name="name" label="Имя" errors={errors} autoComplete="name" />
-          <Field name="phone" label="Телефон" type="tel" inputMode="tel" autoComplete="tel" placeholder="+7 900 123-45-67" errors={errors} hint="Для связи с курьером или пунктом выдачи." />
+          <PhoneField errors={errors} />
           <Field name="email" label="Почта" type="email" autoComplete="email" errors={errors} hint="Сюда придёт чек об оплате." />
         </Section>
 
@@ -383,6 +383,50 @@ function Field({ name, label: text, errors, hint, optional = false, multiline = 
       {hint ? <p id={`${id}-hint`} className={note}>{hint}</p> : null}
       {error ? <p id={`${id}-error`} className="font-sans text-caption tracking-body text-primary">{error}</p> : null}
     </div>
+  )
+}
+
+/** Index right after the n-th digit of a masked value (0 → start). */
+function caretAfterDigits(value: string, n: number): number {
+  if (n <= 0) return 0
+  let seen = 0
+  for (let i = 0; i < value.length; i++) {
+    if (/\d/.test(value[i]) && ++seen === n) return i + 1
+  }
+  return value.length
+}
+
+/** Phone input that always shows "+7 900 123-45-67", whether typed with 8, 7, +7 or nothing. */
+function PhoneField({ errors }: { errors: CheckoutErrors }) {
+  const [phone, setPhone] = useState('')
+  const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const el = event.target
+    const caret = el.selectionStart ?? el.value.length
+    const editingInside = caret < el.value.length
+    const digitsBefore = el.value.slice(0, caret).replace(/\D/g, '').length
+    const next = maskPhone(el.value)
+    setPhone(next)
+    // React puts the caret at the end after a controlled re-render; keep it where the person is editing.
+    if (editingInside) {
+      requestAnimationFrame(() => {
+        const pos = caretAfterDigits(next, digitsBefore)
+        el.setSelectionRange(pos, pos)
+      })
+    }
+  }
+  return (
+    <Field
+      name="phone"
+      label="Телефон"
+      type="tel"
+      inputMode="tel"
+      autoComplete="tel"
+      placeholder="+7 900 123-45-67"
+      value={phone}
+      onChange={onChange}
+      errors={errors}
+      hint="Для связи с курьером или пунктом выдачи."
+    />
   )
 }
 

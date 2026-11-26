@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { sendTelegram } from '@/lib/notify/telegram'
-import { formatPhone, normalizePhone, validateCheckout } from '@/lib/orders/checkout'
+import { formatPhone, maskPhone, normalizePhone, validateCheckout } from '@/lib/orders/checkout'
 import { methodsOf } from '@/lib/orders/options'
 import { orderMessage } from '@/lib/orders/place'
 
@@ -32,6 +32,27 @@ describe('phones', () => {
   it('formats for reading', () => {
     expect(formatPhone('+79001234567')).toBe('+7 900 123-45-67')
     expect(formatPhone('other')).toBe('other')
+  })
+
+  it('masks the field to +7 with spaces whether typed with 8, 7, +7 or nothing', () => {
+    for (const input of ['89001234567', '79001234567', '+79001234567', '9001234567', '8 (900) 123 45 67']) {
+      expect(maskPhone(input)).toBe('+7 900 123-45-67')
+    }
+  })
+
+  it('masks a number while it is being typed', () => {
+    expect(maskPhone('')).toBe('')
+    expect(maskPhone('8')).toBe('+7')
+    expect(maskPhone('9')).toBe('+7 9')
+    expect(maskPhone('8900')).toBe('+7 900')
+    expect(maskPhone('+7 9001')).toBe('+7 900 1')
+    expect(maskPhone('+7 900 12345')).toBe('+7 900 123-45')
+    expect(maskPhone('8800 555 35 35')).toBe('+7 800 555-35-35')
+  })
+
+  it('keeps the masked value valid for the server and drops extra digits', () => {
+    expect(normalizePhone(maskPhone('8 900 123 45 67'))).toBe('+79001234567')
+    expect(maskPhone('8900123456789')).toBe('+7 900 123-45-67')
   })
 })
 

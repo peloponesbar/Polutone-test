@@ -47,6 +47,23 @@ export function formatPhone(phone: string): string {
   return m ? `+7 ${m[1]} ${m[2]}-${m[3]}-${m[4]}` : phone
 }
 
+/**
+ * As-you-type mask for the phone field: always "+7", then "900 123-45-67".
+ * A leading 8 or 7 is read as the country code, so 8…, 7…, +7… and bare 9… all
+ * end up the same; extra digits past ten are dropped. Separators appear only
+ * once a digit follows them, so backspace never gets stuck on a space.
+ */
+export function maskPhone(value: string): string {
+  const digits = value.replace(/\D/g, '')
+  if (!digits) return ''
+  const national = (/^[78]/.test(digits) ? digits.slice(1) : digits).slice(0, 10)
+  const groups: [string, number, number][] = [[' ', 0, 3], [' ', 3, 6], ['-', 6, 8], ['-', 8, 10]]
+  return groups.reduce((out, [sep, from, to]) => {
+    const part = national.slice(from, to)
+    return part ? `${out}${sep}${part}` : out
+  }, '+7')
+}
+
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 /**
